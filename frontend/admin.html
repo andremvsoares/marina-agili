@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#8B5A3C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Admin Marina Aglli">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+  <title>Admin — Marina Aglli</title>
+  <style>
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+    }
+    .admin-header h1 {
+      font-size: 20px;
+      color: #8B5A3C;
+    }
+    .btn-sair {
+      background: none;
+      border: 1px solid #EDE4D8;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: #8B5A3C;
+      cursor: pointer;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+    }
+    .tab {
+      padding: 10px 16px;
+      border-radius: 10px;
+      background: #FAF7F2;
+      border: none;
+      color: #8B5A3C;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tab.ativa {
+      background: #8B5A3C;
+      color: white;
+    }
+    .agendamento-card {
+      background: #FAF7F2;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border-left: 4px solid #8B5A3C;
+    }
+    .agendamento-card.concluido { border-left-color: #4CAF50; }
+    .agendamento-card.cancelado { border-left-color: #C4B5A0; opacity: 0.6; }
+    .agendamento-card h4 {
+      font-size: 15px;
+      color: #4A3B30;
+      margin-bottom: 4px;
+    }
+    .agendamento-card .info {
+      font-size: 13px;
+      color: #6B5B4B;
+      line-height: 1.6;
+    }
+    .agendamento-card .acoes {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-acao {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-concluir { background: #4CAF50; color: white; }
+    .btn-cancelar { background: #F5EFE6; color: #8B5A3C; }
+    .btn-whatsapp { background: #25D366; color: white; }
+    .resumo-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .resumo-item {
+      background: #FAF7F2;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .resumo-item .num {
+      font-size: 24px;
+      font-weight: 700;
+      color: #8B5A3C;
+    }
+    .resumo-item .lbl {
+      font-size: 11px;
+      color: #8B6F5C;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+    .login-box {
+      max-width: 360px;
+      margin: 60px auto;
+      padding: 24px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(139, 90, 60, 0.08);
+    }
+    .login-box h2 {
+      font-size: 20px;
+      color: #8B5A3C;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <div id="tela-login" class="tela ativa">
+      <div class="login-box">
+        <h2>🔐 Painel Admin</h2>
+        <input type="text" id="login-user" class="input-text" placeholder="Usuário" autocomplete="username">
+        <input type="password" id="login-pass" class="input-text" placeholder="Senha" autocomplete="current-password">
+        <button class="btn-primary" onclick="fazerLogin()">Entrar</button>
+        <p id="login-erro" style="color:#C0392B; font-size:13px; text-align:center; margin-top:10px;"></p>
+      </div>
+    </div>
+
+    <div id="tela-painel" class="tela">
+      <div class="admin-header">
+        <h1>👩‍💼 Admin</h1>
+        <button class="btn-sair" onclick="sair()">Sair</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab ativa" onclick="mudarTab('agendamentos', this)">📅 Agendamentos</button>
+        <button class="tab" onclick="mudarTab('servicos', this)">💅 Serviços</button>
+        <button class="tab" onclick="mudarTab('resumo', this)">📊 Resumo</button>
+      </div>
+
+      <div id="tab-agendamentos" class="tab-content">
+        <div class="card">
+          <h2>Filtrar por data</h2>
+          <input type="date" id="filtro-data" class="input-data" onchange="carregarAgendamentos()">
+          <button class="btn-secundario" onclick="limparFiltro()">Ver todos</button>
+        </div>
+        <div id="lista-agendamentos"></div>
+      </div>
+
+      <div id="tab-servicos" class="tab-content" style="display:none;">
+        <div class="card">
+          <h2>Novo serviço</h2>
+          <input type="text" id="novo-nome" class="input-text" placeholder="Nome do serviço">
+          <input type="number" id="novo-preco" class="input-text" placeholder="Preço (R$)">
+          <input type="number" id="nova-duracao" class="input-text" placeholder="Duração (minutos)" value="60">
+          <button class="btn-primary" onclick="criarServico()">+ Adicionar</button>
+        </div>
+        <div class="card">
+          <h2>Serviços cadastrados</h2>
+          <div id="lista-servicos-admin"></div>
+        </div>
+      </div>
+
+      <div id="tab-resumo" class="tab-content" style="display:none;">
+        <div class="resumo-box">
+          <div class="resumo-item">
+            <div class="num" id="resumo-hoje">0</div>
+            <div class="lbl">Hoje</div>
+          </div>
+          <div class="resumo-item">
+            <div class="num" id="resumo-mes">0</div>
+            <div class="lbl">Este mês</div>
+          </div>
+          <div class="resumo-item">
+            <div class="num" id="resumo-faturamento">R$ 0</div>
+            <div class="lbl">Faturamento mês</div>
+          </div>
+          <div class="resumo-item">
+            <div class="num" id="resumo-clientes">0</div>
+            <div class="lbl">Clientes únicos</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    const API_URL = window.location.hostname === "localhost" || window.location.hostname.startsWith("192.168")
+  ? "http://192.168.15.21:4000"  // Desenvolvimento (PC)
+  : "https://marina-aglli-api.onrender.com";  // Produção (Render)
+    let token = localStorage.getItem("admin_token") || null;
+
+    // ============ LOGIN ============
+    async function fazerLogin() {
+      const usuario = document.getElementById("login-user").value.trim();
+      const senha = document.getElementById("login-pass").value;
+      const erro = document.getElementById("login-erro");
+      erro.textContent = "";
+
+      if (!usuario || !senha) {
+        erro.textContent = "Preencha usuário e senha";
+        return;
+      }
+
+      try {
+        const resp = await fetch(`${API_URL}/api/admin/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ usuario, senha })
+        });
+        const dados = await resp.json();
+
+        if (!resp.ok) {
+          erro.textContent = dados.erro || "Erro ao fazer login";
+          return;
+        }
+
+        token = dados.token;
+        localStorage.setItem("admin_token", token);
+        mostrarPainel();
+      } catch (err) {
+        erro.textContent = "Erro de conexão";
+      }
+    }
+
+    function sair() {
+      token = null;
+      localStorage.removeItem("admin_token");
+      document.getElementById("tela-login").classList.add("ativa");
+      document.getElementById("tela-painel").classList.remove("ativa");
+    }
+
+    function mostrarPainel() {
+      document.getElementById("tela-login").classList.remove("ativa");
+      document.getElementById("tela-painel").classList.add("ativa");
+      carregarAgendamentos();
+      carregarServicosAdmin();
+      carregarResumo();
+    }
+
+    // ============ ABAS ============
+    function mudarTab(nome, el) {
+      document.querySelectorAll(".tab").forEach((t) => t.classList.remove("ativa"));
+      el.classList.add("ativa");
+      document.querySelectorAll(".tab-content").forEach((c) => (c.style.display = "none"));
+      document.getElementById(`tab-${nome}`).style.display = "block";
+    }
+
+    // ============ AGENDAMENTOS ============
+    async function carregarAgendamentos() {
+      const data = document.getElementById("filtro-data").value;
+      const url = data
+        ? `${API_URL}/api/agendamentos?data=${data}`
+        : `${API_URL}/api/agendamentos`;
+
+      const container = document.getElementById("lista-agendamentos");
+      container.innerHTML = '<p class="loading">Carregando...</p>';
+
+      try {
+        const resp = await fetch(url);
+        const ags = await resp.json();
+
+        if (ags.length === 0) {
+          container.innerHTML = '<p class="loading">Nenhum agendamento.</p>';
+          return;
+        }
+
+        container.innerHTML = ags
+          .map(
+            (a) => `
+          <div class="agendamento-card ${a.status}">
+            <h4>${a.clienteNome}</h4>
+            <div class="info">
+              💅 ${a.servicoNome} — R$ ${a.servicoPreco}<br>
+              📅 ${a.data.split("-").reverse().join("/")} às ${a.hora}<br>
+              📱 ${a.clienteWhatsapp}<br>
+              ${a.observacoes ? `📝 ${a.observacoes}<br>` : ""}
+              <strong>Status: ${a.status}</strong>
+            </div>
+            <div class="acoes">
+              <button class="btn-acao btn-whatsapp" onclick='abrirWhats(${JSON.stringify(a)})'>💬 WhatsApp</button>
+              ${a.status === "confirmado" ? `
+                <button class="btn-acao btn-concluir" onclick="mudarStatus('${a._id}', 'concluido')">✅ Concluir</button>
+                <button class="btn-acao btn-cancelar" onclick="mudarStatus('${a._id}', 'cancelado')">❌ Cancelar</button>
+              ` : ""}
+            </div>
+          </div>
+        `
+          )
+          .join("");
+      } catch (err) {
+        container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
+      }
+    }
+
+    function limparFiltro() {
+      document.getElementById("filtro-data").value = "";
+      carregarAgendamentos();
+    }
+
+    async function mudarStatus(id, novoStatus) {
+      if (!confirm(`Marcar como "${novoStatus}"?`)) return;
+
+      const resp = await fetch(`${API_URL}/api/agendamentos/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: novoStatus })
+      });
+
+      if (resp.ok) {
+        carregarAgendamentos();
+        carregarResumo();
+      } else {
+        alert("Erro ao atualizar. Faça login de novo.");
+      }
+    }
+
+    function abrirWhats(a) {
+      const msg = `Olá ${a.clienteNome}! Confirmando seu horário na Marina Aglli Clinic Beauty:
+
+💅 ${a.servicoNome}
+📅 ${a.data.split("-").reverse().join("/")} às ${a.hora}
+💰 R$ ${a.servicoPreco}
+
+Até lá! ✨`;
+      window.open(`https://wa.me/${a.clienteWhatsapp}?text=${encodeURIComponent(msg)}`, "_blank");
+    }
+
+    // ============ SERVIÇOS ============
+    async function carregarServicosAdmin() {
+      const container = document.getElementById("lista-servicos-admin");
+      try {
+        const resp = await fetch(`${API_URL}/api/servicos`);
+        const servicos = await resp.json();
+
+        if (servicos.length === 0) {
+          container.innerHTML = '<p class="loading">Nenhum serviço.</p>';
+          return;
+        }
+
+        container.innerHTML = servicos
+          .map(
+            (s) => `
+          <div class="agendamento-card">
+            <h4>${s.nome}</h4>
+            <div class="info">💰 R$ ${s.preco} · ⏱ ${s.duracao || 60} min</div>
+            <div class="acoes">
+              <button class="btn-acao btn-cancelar" onclick="excluirServico('${s._id}', '${s.nome}')">🗑 Desativar</button>
+            </div>
+          </div>
+        `
+          )
+          .join("");
+      } catch (err) {
+        container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
+      }
+    }
+
+    async function criarServico() {
+      const nome = document.getElementById("novo-nome").value.trim();
+      const preco = parseFloat(document.getElementById("novo-preco").value);
+      const duracao = parseInt(document.getElementById("nova-duracao").value) || 60;
+
+      if (!nome || !preco) {
+        alert("Preencha nome e preço");
+        return;
+      }
+
+      const resp = await fetch(`${API_URL}/api/servicos`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ nome, preco, duracao })
+      });
+
+      if (resp.ok) {
+        document.getElementById("novo-nome").value = "";
+        document.getElementById("novo-preco").value = "";
+        document.getElementById("nova-duracao").value = "60";
+        carregarServicosAdmin();
+      } else {
+        alert("Erro ao criar serviço. Faça login de novo.");
+      }
+    }
+
+    async function excluirServico(id, nome) {
+      if (!confirm(`Desativar o serviço "${nome}"?`)) return;
+
+      const resp = await fetch(`${API_URL}/api/servicos/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (resp.ok) {
+        carregarServicosAdmin();
+      } else {
+        alert("Erro ao desativar.");
+      }
+    }
+
+    // ============ RESUMO ============
+    async function carregarResumo() {
+      try {
+        const resp = await fetch(`${API_URL}/api/agendamentos`);
+        const ags = await resp.json();
+
+        const hoje = new Date().toISOString().split("T")[0];
+        const mesAtual = hoje.substring(0, 7);
+
+        const hojeCount = ags.filter((a) => a.data === hoje && a.status !== "cancelado").length;
+        const mesAgs = ags.filter((a) => a.data.startsWith(mesAtual) && a.status !== "cancelado");
+        const faturamento = mesAgs.reduce((s, a) => s + a.servicoPreco, 0);
+        const clientesUnicos = new Set(mesAgs.map((a) => a.clienteWhatsapp)).size;
+
+        document.getElementById("resumo-hoje").textContent = hojeCount;
+        document.getElementById("resumo-mes").textContent = mesAgs.length;
+        document.getElementById("resumo-faturamento").textContent = `R$ ${faturamento}`;
+        document.getElementById("resumo-clientes").textContent = clientesUnicos;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // ============ INICIALIZAÇÃO ============
+    if (token) {
+      mostrarPainel();
+    }
+  </script>
+</body>
+</html>

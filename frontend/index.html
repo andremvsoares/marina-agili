@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#8B5A3C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Marina Aglli">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <title>Marina Aglli Clinic Beauty</title>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <img src="logo.png" alt="Marina Aglli" class="brand-logo">
+      <p class="subtitle">Clinic Beauty</p>
+    </header>
+
+    <main class="content">
+
+      <!-- TELA 1: INICIAL -->
+      <section id="tela-inicial" class="tela ativa">
+        <div class="card">
+          <h2>Agende seu horário</h2>
+          <p>Escolha o melhor dia e horário. Confirmamos tudo pelo WhatsApp!</p>
+          <button class="btn-primary" onclick="irParaAgendamento()">
+            📅 Agendar agora
+          </button>
+        </div>
+
+        <div class="card">
+          <h2>Horário de atendimento</h2>
+          <p>Segunda a Sábado<br>9h às 19h</p>
+        </div>
+      </section>
+
+      <!-- TELA 2: AGENDAMENTO -->
+      <section id="tela-agendamento" class="tela">
+        <button class="btn-voltar" onclick="voltarInicial()">← Voltar</button>
+
+        <div class="card">
+          <h2>1. Escolha o serviço</h2>
+          <div id="lista-servicos" class="servicos-grid">
+            <p class="loading">Carregando serviços...</p>
+          </div>
+        </div>
+
+        <div class="card" id="card-data" style="display:none;">
+          <h2>2. Escolha a data</h2>
+          <input type="date" id="input-data" class="input-data" onchange="carregarHorarios()" min="">
+        </div>
+
+        <div class="card" id="card-horarios" style="display:none;">
+          <h2>3. Escolha o horário</h2>
+          <div id="lista-horarios" class="horarios-grid"></div>
+        </div>
+
+        <div class="card" id="card-dados" style="display:none;">
+          <h2>4. Seus dados</h2>
+          <input type="text" id="input-nome" placeholder="Seu nome completo" class="input-text">
+          <input type="tel" id="input-whatsapp" placeholder="WhatsApp (11) 99999-9999" class="input-text">
+          <textarea id="input-obs" placeholder="Observações (opcional)" class="input-text" rows="2"></textarea>
+        </div>
+
+        <button id="btn-confirmar" class="btn-primary" style="display:none;" onclick="confirmarAgendamento()">
+          ✅ Confirmar agendamento
+        </button>
+      </section>
+
+      <!-- TELA 3: SUCESSO -->
+      <section id="tela-sucesso" class="tela">
+        <div class="card card-sucesso">
+          <div class="check-icon">✅</div>
+          <h2>Agendamento confirmado!</h2>
+          <div id="resumo-agendamento" class="resumo"></div>
+          <p class="aviso">Vamos te enviar uma mensagem no WhatsApp com todos os detalhes.</p>
+          <button class="btn-primary" onclick="abrirWhatsAppConfirmacao()">
+            💬 Abrir WhatsApp
+          </button>
+          <button class="btn-secundario" onclick="voltarInicial()">
+            Fazer outro agendamento
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      <p>© 2026 Marina Aglli Clinic Beauty</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
