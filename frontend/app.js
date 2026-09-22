@@ -9,8 +9,8 @@ const NUMERO_WHATSAPP = "5511999999999";
 // Local: http://localhost:4000
 // Produção (depois): https://sua-api.onrender.com
 const API_URL = window.location.hostname === "localhost" || window.location.hostname.startsWith("192.168")
-  ? "http://192.168.15.21:4000"  // Desenvolvimento (PC)
-  : "https://marina-aglli-api.onrender.com";  // Produção (Render)
+  ? "http://192.168.15.21:4000"
+  : "https://marina-agili.onrender.com";
 
 // ============================================
 // ESTADO
