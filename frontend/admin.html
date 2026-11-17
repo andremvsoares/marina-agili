@@ -219,6 +219,98 @@
     }
     .login-box h2 { font-size: 20px; color: #8B5A3C; margin-bottom: 20px; text-align: center; }
 
+    /* ---------- calendário ---------- */
+    .calendario-topo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .calendario-topo h2 {
+      flex: 1;
+      font-size: 19px;
+      color: #8B5A3C;
+      text-transform: capitalize;
+      margin: 0;
+    }
+    .nav-mes {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      border: 1px solid #EDE4D8;
+      background: #fff;
+      color: #8B5A3C;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .nav-mes:hover { background: #FAF7F2; }
+
+    .calendario-semana {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .calendario-semana span {
+      text-align: center;
+      font-size: 10px;
+      color: #A89880;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .calendario {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+      margin-bottom: 26px;
+    }
+
+    .dia {
+      min-height: 66px;
+      border-radius: 12px;
+      border: 1px solid #EDE4D8;
+      background: #FFFDFB;
+      padding: 7px 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+      font-family: inherit;
+      text-align: left;
+    }
+    .dia:hover { border-color: #C4B5A0; }
+    .dia .numero { font-size: 13px; font-weight: 700; color: #4A3B30; }
+    .dia .qtd {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #EAF3E8;
+      color: #3F6B38;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .dia.cheio .qtd { background: #FBEDEE; color: #A33B45; }
+    .dia.fechado { background: #F7F2EC; cursor: default; }
+    .dia.fechado .numero { color: #C4B5A0; }
+    .dia.bloqueado { background: #FDF3F3; border-color: #F0D6D6; }
+    .dia.passado { opacity: 0.55; }
+    .dia.hoje { border-color: #8B5A3C; }
+    .dia.hoje .numero { color: #8B5A3C; }
+    .dia.selecionado {
+      outline: 2px solid #8B5A3C;
+      outline-offset: -2px;
+      background: #FFF6EE;
+    }
+    .dia.vazio { background: transparent; border: none; cursor: default; }
+
+    .dia-detalhe {
+      border-top: 1px solid #EDE4D8;
+      padding-top: 18px;
+    }
+
     /* ---------- agenda ---------- */
     .agenda-nav {
       display: flex;
@@ -446,14 +538,28 @@
 
       <!-- ================= AGENDA ================= -->
       <div id="tab-agenda" class="tab-content">
-        <div class="agenda-nav">
-          <button onclick="mudarDia(-1)">‹</button>
-          <input type="date" id="agenda-data" onchange="carregarAgenda()">
-          <button onclick="mudarDia(1)">›</button>
-          <button onclick="irHoje()">Hoje</button>
-          <button onclick="fecharDia()">Fechar o dia</button>
+        <div class="calendario-topo">
+          <button class="nav-mes" onclick="mudarMes(-1)" title="Mês anterior">‹</button>
+          <h2 id="calendario-titulo">—</h2>
+          <button class="nav-mes" onclick="mudarMes(1)" title="Próximo mês">›</button>
+          <button class="btn-secundario" onclick="irHoje()">Hoje</button>
         </div>
-        <div id="agenda-conteudo"></div>
+
+        <div class="calendario-semana">
+          <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+        </div>
+
+        <div id="calendario" class="calendario"></div>
+
+        <div class="dia-detalhe">
+          <div class="agenda-nav">
+            <button onclick="mudarDia(-1)">‹</button>
+            <input type="date" id="agenda-data" onchange="carregarAgenda()">
+            <button onclick="mudarDia(1)">›</button>
+            <button onclick="fecharDia()">Fechar o dia</button>
+          </div>
+          <div id="agenda-conteudo"></div>
+        </div>
       </div>
 
       <!-- ================= AGENDAMENTOS ================= -->
@@ -703,28 +809,119 @@
 
       montarAbas();
       carregarClientesComSinal();
+      carregarCalendario();
       carregarAgenda();
     }
 
     // ============ AGENDA ============
     const hoje = () => new Date().toISOString().slice(0, 10);
 
+    const NOMES_MES = [
+      "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+      "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+    ];
+
+    let mesAtual = hoje().slice(0, 7);
+    let diaSelecionado = hoje();
+    let dadosMes = null;
+
     function dataAgenda() {
       const campo = document.getElementById("agenda-data");
-      if (!campo.value) campo.value = hoje();
+      if (!campo.value) campo.value = diaSelecionado || hoje();
       return campo.value;
+    }
+
+    async function carregarCalendario() {
+      const container = document.getElementById("calendario");
+      container.innerHTML = '<p class="loading">Carregando...</p>';
+
+      try {
+        const resp = await fetch(`${API_URL}/api/agenda/mes?mes=${mesAtual}`, { headers: authHeaders() });
+        if (resp.status === 401) { sair(); return; }
+        dadosMes = await resp.json();
+        renderizarCalendario();
+      } catch {
+        container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
+      }
+    }
+
+    function renderizarCalendario() {
+      if (!dadosMes) return;
+
+      const [ano, mes] = dadosMes.mes.split("-");
+      document.getElementById("calendario-titulo").textContent =
+        `${NOMES_MES[Number(mes) - 1]} de ${ano}`;
+
+      const vazios = dadosMes.dias[0]?.diaSemana || 0;
+      let html = "";
+      for (let i = 0; i < vazios; i++) html += '<div class="dia vazio"></div>';
+
+      for (const d of dadosMes.dias) {
+        const classes = ["dia"];
+        if (d.fechado) classes.push("fechado");
+        if (d.bloqueado) classes.push("bloqueado");
+        if (d.passado) classes.push("passado");
+        if (d.hoje) classes.push("hoje");
+        if (d.data === diaSelecionado) classes.push("selecionado");
+
+        let etiqueta = "";
+        if (!d.fechado && !d.bloqueado) {
+          if (d.disponiveis === 0) {
+            classes.push("cheio");
+            etiqueta = '<span class="qtd">cheio</span>';
+          } else {
+            etiqueta = `<span class="qtd">${d.disponiveis} livre${d.disponiveis > 1 ? "s" : ""}</span>`;
+          }
+        }
+
+        const acao = d.fechado ? "" : `onclick="selecionarDia('${d.data}')"`;
+
+        html += `<button class="${classes.join(" ")}" ${acao}>
+            <span class="numero">${d.dia}</span>${etiqueta}
+          </button>`;
+      }
+
+      document.getElementById("calendario").innerHTML = html;
+    }
+
+    function mudarMes(delta) {
+      const [ano, mes] = mesAtual.split("-").map(Number);
+      const destino = new Date(Date.UTC(ano, mes - 1 + delta, 1));
+      mesAtual = destino.toISOString().slice(0, 7);
+      carregarCalendario();
+    }
+
+    function selecionarDia(data) {
+      diaSelecionado = data;
+      document.getElementById("agenda-data").value = data;
+      renderizarCalendario();
+      carregarAgenda();
     }
 
     function mudarDia(delta) {
       const campo = document.getElementById("agenda-data");
       const atual = new Date((campo.value || hoje()) + "T12:00:00");
       atual.setDate(atual.getDate() + delta);
-      campo.value = atual.toISOString().slice(0, 10);
+
+      const nova = atual.toISOString().slice(0, 10);
+      campo.value = nova;
+      diaSelecionado = nova;
+
+      if (nova.slice(0, 7) !== mesAtual) {
+        mesAtual = nova.slice(0, 7);
+        carregarCalendario();
+      } else {
+        renderizarCalendario();
+      }
+
       carregarAgenda();
     }
 
     function irHoje() {
+      mesAtual = hoje().slice(0, 7);
+      diaSelecionado = hoje();
       document.getElementById("agenda-data").value = hoje();
+      carregarCalendario();
       carregarAgenda();
     }
 
@@ -851,6 +1048,7 @@
       });
 
       if (!resp.ok) { alert("Erro ao bloquear."); return; }
+      carregarCalendario();
       carregarAgenda();
     }
 
@@ -866,6 +1064,7 @@
       });
 
       if (!resp.ok) { alert("Erro ao fechar o dia."); return; }
+      carregarCalendario();
       carregarAgenda();
     }
 
@@ -876,6 +1075,7 @@
         headers: authHeaders()
       });
       if (!resp.ok) { alert("Erro ao liberar."); return; }
+      carregarCalendario();
       carregarAgenda();
     }
 
@@ -979,6 +1179,7 @@
 
       if (!resp.ok) { alert("Erro ao registrar a falta."); return; }
       await carregarClientesComSinal();
+      carregarCalendario();
       carregarAgenda();
       carregarResumo();
     }
@@ -994,6 +1195,7 @@
 
       if (!resp.ok) { alert("Erro ao registrar a presença."); return; }
       await carregarClientesComSinal();
+      carregarCalendario();
       carregarAgenda();
       carregarResumo();
     }
@@ -1726,6 +1928,7 @@ Até lá! ✨`;
       if (!resp.ok) { alert("Erro ao liberar."); return; }
       await carregarClientesComSinal();
       fecharModal();
+      carregarCalendario();
       carregarAgenda();
     }
 
@@ -1781,6 +1984,7 @@ Até lá! ✨`;
       if (!resp.ok) { alert(dados.erro || "Erro ao remarcar"); return; }
 
       fecharModal();
+      carregarCalendario();
       carregarAgenda();
     }
 
