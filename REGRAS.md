@@ -35,6 +35,7 @@ clientes estão usando naquele momento.
 | 2026-11-17 | **Sinal de 20% só para quem falta**: a Marina marca "não veio" no painel; a cliente passa a precisar de sinal; ao comparecer, a restrição cai sozinha; nova falta religa |
 | 2026-11-17 | **Cancelamento com menos de 3 horas** de antecedência conta como problema e também liga o sinal |
 | 2026-11-17 | Sinal de 20% é **abatido do valor do serviço** (não é taxa perdida) |
+| 2026-11-17 | **Lembrete na manhã do atendimento** (template de utilidade). Exceção: horários antes das 14h recebem na véspera às 18h, para o "Cancelar" não cair dentro da regra das 3h e punir a cliente |
 | 2026-11-17 | Coexistence exige: número no WhatsApp Business App há 3+ meses, sem forma de pagamento vinculada, app 2.24.17+ |
 
 ## Arquitetura
