@@ -1,0 +1,49 @@
+name: Backup do MongoDB
+
+# Roda todo dia às 03:00 de Brasília (06:00 UTC).
+# Também pode ser disparado na mão em Actions > Backup do MongoDB > Run workflow.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar driver do Mongo
+        run: npm install mongodb@6 bson --no-save --no-audit --no-fund
+
+      - name: Exportar banco
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: node scripts/backup.mjs
+
+      - name: Empacotar
+        run: tar -czf backup.tgz -C out . && ls -lh backup.tgz
+
+      - name: Criptografar
+        env:
+          BACKUP_PASS: ${{ secrets.BACKUP_PASS }}
+        run: node scripts/encrypt.mjs backup.tgz backup.tgz.enc
+
+      - name: Remover versão em claro
+        run: rm -f backup.tgz
+
+      - name: Guardar artifact (90 dias)
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-mongo-${{ github.run_number }}
+          path: backup.tgz.enc
+          retention-days: 90
+          if-no-files-found: error

@@ -45,6 +45,7 @@ function voltarInicial() {
   document.getElementById("input-nome").value = "";
   document.getElementById("input-whatsapp").value = "";
   document.getElementById("input-obs").value = "";
+  document.getElementById("input-consentimento").checked = false;
   document.getElementById("card-data").style.display = "none";
   document.getElementById("card-horarios").style.display = "none";
   document.getElementById("card-dados").style.display = "none";
@@ -148,6 +149,7 @@ async function confirmarAgendamento() {
   const nome = document.getElementById("input-nome").value.trim();
   const whatsapp = document.getElementById("input-whatsapp").value.trim();
   const obs = document.getElementById("input-obs").value.trim();
+  const consentimento = document.getElementById("input-consentimento").checked;
 
   // Validações
   if (!servicoSelecionado) return alert("Escolha um serviço");
@@ -155,6 +157,7 @@ async function confirmarAgendamento() {
   if (!horaSelecionada) return alert("Escolha um horário");
   if (!nome) return alert("Digite seu nome");
   if (!whatsapp || whatsapp.length < 10) return alert("Digite um WhatsApp válido");
+  if (!consentimento) return alert("Para agendar, aceite a Política de Privacidade.");
 
   const btn = document.getElementById("btn-confirmar");
   btn.disabled = true;
@@ -170,7 +173,8 @@ async function confirmarAgendamento() {
         servicoId: servicoSelecionado._id,
         data: dataSelecionada,
         hora: horaSelecionada,
-        observacoes: obs
+        observacoes: obs,
+        consentimento: true
       })
     });
 

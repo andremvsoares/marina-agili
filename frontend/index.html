@@ -63,8 +63,16 @@
         <div class="card" id="card-dados" style="display:none;">
           <h2>4. Seus dados</h2>
           <input type="text" id="input-nome" placeholder="Seu nome completo" class="input-text">
-          <input type="tel" id="input-whatsapp" placeholder="WhatsApp (11) 99999-9999" class="input-text">
+          <input type="tel" id="input-whatsapp" placeholder="WhatsApp (19) 99999-9999" class="input-text">
           <textarea id="input-obs" placeholder="Observações (opcional)" class="input-text" rows="2"></textarea>
+          <label class="consentimento">
+            <input type="checkbox" id="input-consentimento">
+            <span>
+              Li e aceito a
+              <a href="privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>
+              e autorizo o contato pelo WhatsApp sobre este agendamento.
+            </span>
+          </label>
         </div>
 
         <button id="btn-confirmar" class="btn-primary" style="display:none;" onclick="confirmarAgendamento()">
@@ -92,6 +100,7 @@
 
     <footer class="footer">
       <p>© 2026 Marina Aglli Clinic Beauty</p>
+      <p><a href="privacidade.html" class="link-privacidade">Política de Privacidade</a></p>
     </footer>
   </div>
 

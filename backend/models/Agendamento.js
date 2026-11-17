@@ -21,6 +21,11 @@ const AgendamentoSchema = new mongoose.Schema({
     default: "confirmado"
   },
   observacoes: { type: String, default: "" },
+
+  // Prova de opt-in (LGPD + exigência da Meta para mensagens de template).
+  consentimento: { type: Boolean, default: false },
+  consentimentoEm: { type: Date },
+
   criadoEm: { type: Date, default: Date.now }
 });
 

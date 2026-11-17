@@ -223,6 +223,7 @@ app.post("/api/agendamentos", limiteAgendamento, async (req, res) => {
 
     const { clienteNome, clienteWhatsapp, servicoId, data, hora, observacoes } = req.body;
     const whatsappLimpo = clienteWhatsapp.replace(/\D/g, "");
+    const consentimento = req.body.consentimento === true;
 
     // Buscar serviço
     const servico = await Servico.findById(servicoId);
@@ -252,7 +253,9 @@ app.post("/api/agendamentos", limiteAgendamento, async (req, res) => {
       data,
       hora,
       slot: montarSlot(data, hora),
-      observacoes: observacoes ? String(observacoes).slice(0, MAX_OBS) : ""
+      observacoes: observacoes ? String(observacoes).slice(0, MAX_OBS) : "",
+      consentimento,
+      consentimentoEm: consentimento ? new Date() : undefined
     });
 
     // Salvar/atualizar cliente
