@@ -8,6 +8,12 @@ import Servico from "./models/Servico.js";
 import Agendamento from "./models/Agendamento.js";
 import adminRoutes, { autenticar } from "./routes/admin.js";
 import whatsappRoutes from "./routes/whatsapp.js";
+import clientesRoutes from "./routes/clientes.js";
+import {
+  marcarFalta,
+  registrarComparecimento,
+  registrarCancelamento
+} from "./services/clientes.js";
 import {
   criarAgendamento,
   horariosDisponiveis,
@@ -73,6 +79,7 @@ const limiteAgendamento = rateLimit({
 });
 
 app.use("/api/admin", adminRoutes);
+app.use("/api/clientes", clientesRoutes);
 
 // Webhook do WhatsApp. O rate limit global é generoso de propósito:
 // a Meta pode entregar vários eventos seguidos.
@@ -233,13 +240,46 @@ app.get("/api/agendamentos", autenticar, async (req, res) => {
 
 app.patch("/api/agendamentos/:id/cancelar", autenticar, async (req, res) => {
   try {
-    const agendamento = await Agendamento.findByIdAndUpdate(
-      req.params.id,
-      { status: "cancelado", $unset: { slot: 1 } },
-      { new: true }
-    );
-    if (!agendamento) return res.status(404).json({ erro: "Agendamento não encontrado" });
-    res.json(agendamento);
+    const resultado = await registrarCancelamento(req.params.id);
+    if (!resultado.ok) return res.status(resultado.status).json({ erro: resultado.erro });
+
+    const agendamento = resultado.agendamento.toObject
+      ? resultado.agendamento.toObject()
+      : resultado.agendamento;
+
+    res.json({ ...agendamento, cancelamentoTardio: resultado.tardio });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// Marina confirmou que a cliente não apareceu.
+app.patch("/api/agendamentos/:id/falta", autenticar, async (req, res) => {
+  try {
+    const resultado = await marcarFalta(req.params.id);
+    if (!resultado.ok) return res.status(resultado.status).json({ erro: resultado.erro });
+
+    const agendamento = resultado.agendamento.toObject
+      ? resultado.agendamento.toObject()
+      : resultado.agendamento;
+
+    res.json({ ...agendamento, sinalObrigatorio: resultado.cliente?.sinalObrigatorio === true });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// Atendimento aconteceu: a restrição de sinal cai.
+app.patch("/api/agendamentos/:id/compareceu", autenticar, async (req, res) => {
+  try {
+    const resultado = await registrarComparecimento(req.params.id);
+    if (!resultado.ok) return res.status(resultado.status).json({ erro: resultado.erro });
+
+    const agendamento = resultado.agendamento.toObject
+      ? resultado.agendamento.toObject()
+      : resultado.agendamento;
+
+    res.json({ ...agendamento, sinalObrigatorio: resultado.cliente?.sinalObrigatorio === true });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
@@ -248,19 +288,39 @@ app.patch("/api/agendamentos/:id/cancelar", autenticar, async (req, res) => {
 app.patch("/api/agendamentos/:id/status", autenticar, async (req, res) => {
   try {
     const { status } = req.body;
-    if (!["confirmado", "cancelado", "concluido"].includes(status)) {
+    const validos = ["confirmado", "cancelado", "concluido", "nao_compareceu"];
+
+    if (!validos.includes(status)) {
       return res.status(400).json({ erro: "Status inválido" });
     }
 
+    if (status === "cancelado") {
+      const r = await registrarCancelamento(req.params.id);
+      if (!r.ok) return res.status(r.status).json({ erro: r.erro });
+      return res.json({ ...(r.agendamento.toObject?.() || r.agendamento), cancelamentoTardio: r.tardio });
+    }
+
+    if (status === "concluido") {
+      const r = await registrarComparecimento(req.params.id);
+      if (!r.ok) return res.status(r.status).json({ erro: r.erro });
+      return res.json(r.agendamento);
+    }
+
+    if (status === "nao_compareceu") {
+      const r = await marcarFalta(req.params.id);
+      if (!r.ok) return res.status(r.status).json({ erro: r.erro });
+      return res.json(r.agendamento);
+    }
+
+    // Voltar para "confirmado": reocupa o horário.
     const atual = await Agendamento.findById(req.params.id);
     if (!atual) return res.status(404).json({ erro: "Agendamento não encontrado" });
 
-    const atualizacao =
-      status === "cancelado"
-        ? { status, $unset: { slot: 1 } }
-        : { status, slot: `${atual.data}T${atual.hora}` };
-
-    const ag = await Agendamento.findByIdAndUpdate(req.params.id, atualizacao, { new: true });
+    const ag = await Agendamento.findByIdAndUpdate(
+      req.params.id,
+      { status, slot: `${atual.data}T${atual.hora}` },
+      { new: true }
+    );
     res.json(ag);
   } catch (err) {
     if (err && err.code === 11000) {

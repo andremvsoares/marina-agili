@@ -86,6 +86,22 @@
     .btn-concluir { background: #4CAF50; color: white; }
     .btn-cancelar { background: #F5EFE6; color: #8B5A3C; }
     .btn-whatsapp { background: #25D366; color: white; }
+    .btn-falta { background: #E8B4B8; color: #7A2E36; }
+
+    .tag-sinal {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #FBEDEE;
+      color: #A33B45;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      vertical-align: middle;
+    }
+
+    .agendamento-card.nao_compareceu { border-left-color: #C0392B; opacity: 0.75; }
     .resumo-box {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -205,9 +221,28 @@
   : "https://marina-agili.onrender.com";
     let token = localStorage.getItem("admin_token") || null;
 
+    // Números com sinal obrigatório (carregados do backend).
+    let clientesComSinal = new Set();
+
     // Cabeçalhos autenticados: a listagem de agendamentos agora é protegida.
     function authHeaders(extra = {}) {
       return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
+    }
+
+    async function carregarClientesComSinal() {
+      try {
+        const resp = await fetch(`${API_URL}/api/clientes/sinal`, { headers: authHeaders() });
+        if (!resp.ok) return;
+        const lista = await resp.json();
+        clientesComSinal = new Set(lista.map((c) => c.whatsapp));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // O horário do atendimento já passou?
+    function jaPassou(a) {
+      return new Date(`${a.data}T${a.hora}:00-03:00`) < new Date();
     }
 
     // ============ LOGIN ============
@@ -253,6 +288,7 @@
     function mostrarPainel() {
       document.getElementById("tela-login").classList.remove("ativa");
       document.getElementById("tela-painel").classList.add("ativa");
+      carregarClientesComSinal();
       carregarAgendamentos();
       carregarServicosAdmin();
       carregarResumo();
@@ -296,7 +332,10 @@
           .map(
             (a) => `
           <div class="agendamento-card ${a.status}">
-            <h4>${a.clienteNome}</h4>
+            <h4>
+              ${a.clienteNome}
+              ${clientesComSinal.has(a.clienteWhatsapp) ? '<span class="tag-sinal">⚠ pede sinal</span>' : ""}
+            </h4>
             <div class="info">
               💅 ${a.servicoNome} — R$ ${a.servicoPreco}<br>
               📅 ${a.data.split("-").reverse().join("/")} às ${a.hora}<br>
@@ -306,10 +345,19 @@
             </div>
             <div class="acoes">
               <button class="btn-acao btn-whatsapp" onclick='abrirWhats(${JSON.stringify(a)})'>💬 WhatsApp</button>
-              ${a.status === "confirmado" ? `
+              ${
+                a.status === "confirmado"
+                  ? jaPassou(a)
+                    ? `
+                <button class="btn-acao btn-concluir" onclick="marcarCompareceu('${a._id}')">✅ Compareceu</button>
+                <button class="btn-acao btn-falta" onclick="marcarFalta('${a._id}')">🚫 Não veio</button>
+              `
+                    : `
                 <button class="btn-acao btn-concluir" onclick="mudarStatus('${a._id}', 'concluido')">✅ Concluir</button>
                 <button class="btn-acao btn-cancelar" onclick="mudarStatus('${a._id}', 'cancelado')">❌ Cancelar</button>
-              ` : ""}
+              `
+                  : ""
+              }
             </div>
           </div>
         `
@@ -343,6 +391,44 @@
       } else {
         alert("Erro ao atualizar. Faça login de novo.");
       }
+    }
+
+    async function marcarFalta(id) {
+      const ok = confirm(
+        "Confirmar que a cliente NÃO compareceu?\n\nEla vai precisar pagar sinal de 20% nos próximos agendamentos."
+      );
+      if (!ok) return;
+
+      const resp = await fetch(`${API_URL}/api/agendamentos/${id}/falta`, {
+        method: "PATCH",
+        headers: authHeaders()
+      });
+
+      if (!resp.ok) {
+        alert("Erro ao registrar a falta.");
+        return;
+      }
+      carregarClientesComSinal();
+      carregarAgendamentos();
+      carregarResumo();
+    }
+
+    async function marcarCompareceu(id) {
+      const ok = confirm("Confirmar que a cliente compareceu?\n\nA exigência de sinal é removida.");
+      if (!ok) return;
+
+      const resp = await fetch(`${API_URL}/api/agendamentos/${id}/compareceu`, {
+        method: "PATCH",
+        headers: authHeaders()
+      });
+
+      if (!resp.ok) {
+        alert("Erro ao registrar a presença.");
+        return;
+      }
+      carregarClientesComSinal();
+      carregarAgendamentos();
+      carregarResumo();
     }
 
     function abrirWhats(a) {

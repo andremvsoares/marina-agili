@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import Servico from "../models/Servico.js";
 import Cliente from "../models/Cliente.js";
 import Agendamento from "../models/Agendamento.js";
+import { obterOuCriarCliente } from "./clientes.js";
 
 export const HORARIOS_FIXOS = [
   "09:00", "10:00", "11:00",
@@ -76,6 +77,9 @@ export async function criarAgendamento({
   const whatsappLimpo = String(clienteWhatsapp).replace(/\D/g, "");
   const nome = String(clienteNome).trim();
 
+  // A ficha da cliente manda: quem já faltou sem avisar entra com sinal.
+  const cliente = await obterOuCriarCliente(whatsappLimpo, nome);
+
   // Modo simulado (teste do bot sem número real): valida tudo e devolve um
   // objeto falso, sem gravar nada no banco de produção.
   if (simulado) {
@@ -108,14 +112,9 @@ export async function criarAgendamento({
       slot: montarSlot(data, hora),
       observacoes: observacoes ? String(observacoes).slice(0, 300) : "",
       consentimento: consentimento === true,
-      consentimentoEm: consentimento === true ? new Date() : undefined
+      consentimentoEm: consentimento === true ? new Date() : undefined,
+      sinalPendente: cliente.sinalObrigatorio === true
     });
-
-    await Cliente.findOneAndUpdate(
-      { whatsapp: whatsappLimpo },
-      { nome },
-      { upsert: true, new: true }
-    );
 
     return { ok: true, agendamento };
   } catch (err) {

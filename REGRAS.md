@@ -30,6 +30,11 @@ clientes estão usando naquele momento.
 | 2026-11-17 | Custo estimado: ~R$ 4/mês no cenário de 100 agendamentos; carteira pré-paga mínima US$ 10 |
 | 2026-11-17 | Bot = front-end conversacional do mesmo backend (fonte única: `services/booking.js`) |
 | 2026-11-17 | Ordem de trabalho: Segurança → Robustez → Marca → Bot → Onboarding |
+| 2026-11-17 | **Reserva paga: Pix automático via gateway**, Mercado Pago preferido (0,49%–0,99%); alternativa Asaas (R$ 1,99/transação). Pix manual descartado por exigir confirmação humana a cada reserva |
+| 2026-11-17 | Pagamento deve ser **abstraído atrás de um adaptador** para permitir trocar de gateway sem reescrever o fluxo |
+| 2026-11-17 | **Sinal de 20% só para quem falta**: a Marina marca "não veio" no painel; a cliente passa a precisar de sinal; ao comparecer, a restrição cai sozinha; nova falta religa |
+| 2026-11-17 | **Cancelamento com menos de 3 horas** de antecedência conta como problema e também liga o sinal |
+| 2026-11-17 | Sinal de 20% é **abatido do valor do serviço** (não é taxa perdida) |
 | 2026-11-17 | Coexistence exige: número no WhatsApp Business App há 3+ meses, sem forma de pagamento vinculada, app 2.24.17+ |
 
 ## Arquitetura
@@ -82,6 +87,9 @@ No modo simulado nada é enviado e **nada é gravado no banco**.
 - [x] Monitor da API a cada 15 min (e-mail em caso de falha)
 - [x] Política de privacidade + consentimento gravado no agendamento
 - [x] Bot do WhatsApp (webhook, sessão, fluxo, handoff) — testado em modo simulado
+- [x] **Ficha da cliente**: histórico de faltas, cancelamento tardio (<3h), sinal obrigatório,
+      endpoints `/api/clientes` e botões "Compareceu"/"Não veio" no painel — 16 testes passando
+- [x] Textos do bot centralizados em `backend/textos.js`
 
 ### Em aberto
 - [ ] Render free (dorme após 15 min) → plano pago
