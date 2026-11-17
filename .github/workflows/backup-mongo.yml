@@ -19,14 +19,29 @@ jobs:
       - name: Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
+
+      # Aceita tanto "Secrets" quanto "Variables" — evita a confusão
+      # entre as duas abas em Settings > Secrets and variables > Actions.
+      - name: Conferir configuração
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI || vars.MONGODB_URI }}
+          BACKUP_PASS: ${{ secrets.BACKUP_PASS || vars.BACKUP_PASS }}
+        run: |
+          echo "MONGODB_URI configurada: $([ -n "$MONGODB_URI" ] && echo SIM || echo NAO)"
+          echo "BACKUP_PASS configurada: $([ -n "$BACKUP_PASS" ] && echo SIM || echo NAO)"
+          if [ -z "$MONGODB_URI" ] || [ -z "$BACKUP_PASS" ]; then
+            echo "❌ Faltando variável. Cadastre as duas em:"
+            echo "   Settings > Secrets and variables > Actions > aba Secrets > New repository secret"
+            exit 1
+          fi
 
       - name: Instalar driver do Mongo
         run: npm install mongodb@6 bson --no-save --no-audit --no-fund
 
       - name: Exportar banco
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI || vars.MONGODB_URI }}
         run: node scripts/backup.mjs
 
       - name: Empacotar
@@ -34,7 +49,7 @@ jobs:
 
       - name: Criptografar
         env:
-          BACKUP_PASS: ${{ secrets.BACKUP_PASS }}
+          BACKUP_PASS: ${{ secrets.BACKUP_PASS || vars.BACKUP_PASS }}
         run: node scripts/encrypt.mjs backup.tgz backup.tgz.enc
 
       - name: Remover versão em claro
