@@ -45,6 +45,7 @@ Bot WhatsApp ──┘        (regras únicas)
 - `backend/services/sessao.js` — estado da conversa por telefone (Mongo, ou memória no simulado)
 - `backend/routes/whatsapp.js` — webhook + fluxo conversacional
 - `backend/models/Conversa.js` — sessão persistida
+- **`backend/textos.js` — TODAS as mensagens do bot** (editar aqui, só texto, sem lógica)
 
 ## Como testar o bot sem número real
 

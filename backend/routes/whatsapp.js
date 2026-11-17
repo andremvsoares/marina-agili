@@ -2,10 +2,11 @@
 //
 // O bot é só mais um cliente da mesma camada de agendamento usada pelo site.
 // Nenhuma regra de negócio mora aqui: serviço, horário e criação passam por
-// services/booking.js.
+// services/booking.js. Todos os textos ficam em ../textos.js.
 
 import express from "express";
 import crypto from "node:crypto";
+import { TEXTOS as T } from "../textos.js";
 import {
   listarServicos,
   horariosDisponiveis,
@@ -31,9 +32,9 @@ const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "o
 // ==================== HELPERS DE DATA ====================
 
 const hojeISO = () => {
-  const agora = new Date();
-  // Data local no fuso do servidor; a Render roda em UTC, então usamos São Paulo.
-  const sp = new Date(agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const sp = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+  );
   return sp.toISOString().slice(0, 10);
 };
 
@@ -44,13 +45,13 @@ const somarDias = (iso, dias) => {
 };
 
 const formatarData = (iso) => {
-  const [ano, mes, dia] = iso.split("-");
+  const [, mes, dia] = iso.split("-");
   const d = new Date(iso + "T12:00:00Z");
   return `${DIAS_SEMANA[d.getUTCDay()]}, ${dia}/${mes}`;
 };
 
 const formatarDataLonga = (iso) => {
-  const [ano, mes, dia] = iso.split("-");
+  const [, mes, dia] = iso.split("-");
   const d = new Date(iso + "T12:00:00Z");
   return `${DIAS_SEMANA[d.getUTCDay()]}, ${dia} de ${MESES[Number(mes) - 1]}`;
 };
@@ -65,7 +66,6 @@ function interpretarData(texto) {
   if (/^(hoje)$/.test(t)) return hoje;
   if (/^(amanh[ãa])$/.test(t)) return somarDias(hoje, 1);
 
-  // 18/11, 18-11, 18/11/2026
   const m = t.match(/^(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?$/);
   if (m) {
     const dia = m[1].padStart(2, "0");
@@ -77,7 +77,6 @@ function interpretarData(texto) {
     return iso;
   }
 
-  // 2026-11-18
   if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
 
   return null;
@@ -86,9 +85,9 @@ function interpretarData(texto) {
 function dataValida(iso) {
   const hoje = hojeISO();
   const limite = somarDias(hoje, 90);
-  if (iso < hoje) return "Essa data já passou. Escolha uma data a partir de hoje.";
-  if (iso > limite) return "Só consigo agendar com até 90 dias de antecedência.";
-  if (ehDomingo(iso)) return "Domingo não temos atendimento. Escolha outro dia de segunda a sábado.";
+  if (iso < hoje) return T.dataPassada;
+  if (iso > limite) return T.dataMuitoLonge;
+  if (ehDomingo(iso)) return T.domingo;
   return null;
 }
 
@@ -110,15 +109,13 @@ router.get("/", (req, res) => {
 
 function assinaturaValida(req) {
   const segredo = process.env.WHATSAPP_APP_SECRET;
-  // Sem segredo configurado (desenvolvimento), não bloqueia.
-  if (!segredo) return true;
+  if (!segredo) return true; // desenvolvimento
 
   const assinatura = req.headers["x-hub-signature-256"];
   if (!assinatura || !req.rawBody) return false;
 
   const esperado =
-    "sha256=" +
-    crypto.createHmac("sha256", segredo).update(req.rawBody).digest("hex");
+    "sha256=" + crypto.createHmac("sha256", segredo).update(req.rawBody).digest("hex");
 
   const a = Buffer.from(assinatura);
   const b = Buffer.from(esperado);
@@ -127,7 +124,6 @@ function assinaturaValida(req) {
 
 router.post("/", (req, res) => {
   // Sem token configurado o bot não está ativo: recusa eventos reais.
-  // Evita que alguém que descubra a URL crie agendamentos falsos.
   const simulado = process.env.BOT_DRY_RUN === "1";
   if (!botConfigurado() && !simulado) {
     return res.status(503).json({ erro: "Bot do WhatsApp não configurado" });
@@ -152,7 +148,6 @@ async function tratarPayload(corpo) {
       const valor = mudanca.value || {};
 
       // Coexistência: mensagem que a Marina enviou pelo app do celular.
-      // Nesse caso o bot sai de cena para não atropelar o atendimento humano.
       for (const eco of valor.message_echoes || []) {
         const para = eco?.to;
         if (para) {
@@ -187,18 +182,16 @@ async function tratarMensagem(msg, contato) {
   const texto = msg.text?.body?.trim() || "";
   const nomePerfil = contato?.profile?.name || null;
 
-  // Palavras que sempre reiniciam o fluxo.
   if (/^(menu|oi|ol[áa]|bom dia|boa tarde|boa noite|in[íi]cio|come[çc]ar)$/i.test(texto)) {
     return menu(sessao, nomePerfil);
   }
   if (/^(cancelar|sair|parar)$/i.test(texto)) {
     await limparSessao(telefone);
-    return enviarTexto(telefone, "Sem problema! Se quiser agendar depois, é só mandar *oi* por aqui. 💛");
+    return enviarTexto(telefone, T.cancelou);
   }
 
   if (idInterativo) return tratarClique(sessao, idInterativo);
 
-  // Texto livre fora dos estados que esperam texto → mostra o menu.
   return tratarTexto(sessao, texto, nomePerfil);
 }
 
@@ -209,17 +202,13 @@ async function menu(sessao, nomePerfil) {
   sessao.dados = {};
   await salvarSessao(sessao);
 
-  const oi = nomePerfil ? `Oi, ${nomePerfil.split(" ")[0]}! 👋` : "Oi! 👋";
+  const primeiroNome = nomePerfil ? nomePerfil.split(" ")[0] : null;
 
-  return enviarBotoes(
-    sessao.telefone,
-    `${oi} Aqui é o atendimento da *Marina Aglli Clinic Beauty*.\n\nPosso cuidar do seu agendamento agora mesmo. O que você prefere?`,
-    [
-      { id: "menu:agendar", titulo: "Agendar horário" },
-      { id: "menu:servicos", titulo: "Ver serviços" },
-      { id: "menu:humano", titulo: "Falar com a Marina" }
-    ]
-  );
+  return enviarBotoes(sessao.telefone, T.saudacao(primeiroNome), [
+    { id: "menu:agendar", titulo: T.botoesMenu.agendar },
+    { id: "menu:servicos", titulo: T.botoesMenu.servicos },
+    { id: "menu:humano", titulo: T.botoesMenu.humano }
+  ]);
 }
 
 async function mostrarServicos(sessao) {
@@ -228,30 +217,22 @@ async function mostrarServicos(sessao) {
   if (servicos.length === 0) {
     sessao.estado = "inicio";
     await salvarSessao(sessao);
-    return enviarTexto(
-      sessao.telefone,
-      "Estamos atualizando a lista de serviços. Fale direto com a Marina, ela te ajuda agora. 💛"
-    );
+    return enviarTexto(sessao.telefone, T.servicosIndisponiveis);
   }
 
   sessao.estado = "servico";
   await salvarSessao(sessao);
 
-  return enviarLista(
-    sessao.telefone,
-    "Escolha o serviço que você quer fazer:",
-    "Ver serviços",
-    [
-      {
-        title: "Serviços disponíveis",
-        rows: servicos.slice(0, 10).map((s) => ({
-          id: `servico:${s._id}`,
-          title: s.nome,
-          description: `R$ ${s.preco} · ${s.duracao || 60} min`
-        }))
-      }
-    ]
-  );
+  return enviarLista(sessao.telefone, T.escolherServico, T.botaoServicos, [
+    {
+      title: T.secaoServicos,
+      rows: servicos.slice(0, 10).map((s) => ({
+        id: `servico:${s._id}`,
+        title: s.nome,
+        description: `R$ ${s.preco} · ${s.duracao || 60} min`
+      }))
+    }
+  ]);
 }
 
 async function mostrarDatas(sessao) {
@@ -260,8 +241,8 @@ async function mostrarDatas(sessao) {
 
   const hoje = hojeISO();
   const linhas = [];
-  let cursor = hoje;
   let tentativas = 0;
+  let cursor = hoje;
 
   while (linhas.length < 6 && tentativas < 15) {
     cursor = somarDias(hoje, tentativas);
@@ -270,12 +251,9 @@ async function mostrarDatas(sessao) {
     linhas.push({ id: `data:${cursor}`, title: formatarData(cursor) });
   }
 
-  return enviarLista(
-    sessao.telefone,
-    "Perfeito! Agora escolha o dia:",
-    "Ver datas",
-    [{ title: "Próximos dias", rows: linhas }]
-  );
+  return enviarLista(sessao.telefone, T.escolherDia, T.botaoDatas, [
+    { title: T.secaoDatas, rows: linhas }
+  ]);
 }
 
 async function mostrarHorarios(sessao) {
@@ -289,20 +267,15 @@ async function mostrarHorarios(sessao) {
   if (livres.length === 0) {
     sessao.estado = "data";
     await salvarSessao(sessao);
-    await enviarTexto(sessao.telefone, "Esse dia já está cheio 😕 Vamos escolher outro?");
+    await enviarTexto(sessao.telefone, T.diaCheio);
     return mostrarDatas(sessao);
   }
 
   return enviarLista(
     sessao.telefone,
-    `Horários livres em *${formatarDataLonga(data)}*:`,
-    "Ver horários",
-    [
-      {
-        title: "Horários disponíveis",
-        rows: livres.map((h) => ({ id: `hora:${h.hora}`, title: h.hora }))
-      }
-    ]
+    T.horariosLivres(formatarDataLonga(data)),
+    T.botaoHorarios,
+    [{ title: T.secaoHorarios, rows: livres.map((h) => ({ id: `hora:${h.hora}`, title: h.hora })) }]
   );
 }
 
@@ -325,7 +298,7 @@ async function pedirNome(sessao, nomePerfil) {
 
   sessao.estado = "nome";
   await salvarSessao(sessao);
-  return enviarTexto(sessao.telefone, "Por último, como você se chama?");
+  return enviarTexto(sessao.telefone, T.pedirNome);
 }
 
 async function resumo(sessao) {
@@ -333,10 +306,16 @@ async function resumo(sessao) {
 
   return enviarBotoes(
     sessao.telefone,
-    `Confere pra mim? 👇\n\n*Nome:* ${nome}\n*Serviço:* ${servicoNome}\n*Data:* ${formatarDataLonga(data)}\n*Horário:* ${hora}\n*Valor:* R$ ${servicoPreco}\n\nSe estiver tudo certo, eu já reservo.`,
+    T.resumo({
+      nome,
+      servicoNome,
+      dataFormatada: formatarDataLonga(data),
+      hora,
+      preco: servicoPreco
+    }),
     [
-      { id: "confirma:sim", titulo: "Confirmar" },
-      { id: "confirma:nao", titulo: "Trocar horário" }
+      { id: "confirma:sim", titulo: T.botoesConfirmar.sim },
+      { id: "confirma:nao", titulo: T.botoesConfirmar.nao }
     ]
   );
 }
@@ -347,22 +326,19 @@ async function tratarClique(sessao, id) {
   const telefone = sessao.telefone;
 
   if (id === "menu:agendar") return mostrarServicos(sessao);
+
   if (id === "menu:servicos") {
     const servicos = await listarServicos();
-    await enviarTexto(
-      telefone,
-      "Nossos serviços:\n\n" +
-        servicos.map((s) => `• *${s.nome}* — R$ ${s.preco} (${s.duracao || 60} min)`).join("\n") +
-        "\n\nQuer agendar algum? 🙂"
-    );
+    const linhas = servicos
+      .map((s) => `• *${s.nome}* — R$ ${s.preco} (${s.duracao || 60} min)`)
+      .join("\n");
+    await enviarTexto(telefone, T.listaDeServicos(linhas));
     return mostrarServicos(sessao);
   }
+
   if (id === "menu:humano") {
     await pausarBot(telefone, 12);
-    return enviarTexto(
-      telefone,
-      "Claro! Já avisei a Marina e ela te responde por aqui. 💛\n\nEnquanto isso, se quiser adiantar, é só mandar *oi* que eu volto ao agendamento."
-    );
+    return enviarTexto(telefone, T.chamouHumano);
   }
 
   if (id.startsWith("servico:")) {
@@ -371,7 +347,7 @@ async function tratarClique(sessao, id) {
     const escolhido = servicos.find((s) => String(s._id) === servicoId);
 
     if (!escolhido) {
-      return enviarTexto(telefone, "Não achei esse serviço. Vamos escolher de novo?");
+      return enviarTexto(telefone, T.servicoNaoEncontrado);
     }
 
     sessao.dados.servicoId = String(escolhido._id);
@@ -418,16 +394,13 @@ async function tratarTexto(sessao, texto, nomePerfil) {
 
   // Já está no resumo: texto livre não pode jogar fora a reserva em andamento.
   if (sessao.estado === "confirmar") {
-    await enviarTexto(
-      telefone,
-      "Só falta um toque: use os botões *Confirmar* ou *Trocar horário* para eu concluir. 🙂"
-    );
+    await enviarTexto(telefone, T.resumoTravado);
     return resumo(sessao);
   }
 
   if (sessao.estado === "nome") {
     if (texto.length < 2) {
-      return enviarTexto(telefone, "Me diz seu nome completo, por favor 🙂");
+      return enviarTexto(telefone, T.nomeCurto);
     }
     sessao.dados.nome = texto.slice(0, 80);
     sessao.estado = "confirmar";
@@ -438,10 +411,7 @@ async function tratarTexto(sessao, texto, nomePerfil) {
   if (sessao.estado === "data") {
     const iso = interpretarData(texto);
     if (!iso) {
-      return enviarTexto(
-        telefone,
-        "Não entendi a data 🙈 Pode escrever assim: *25/11* ou *amanhã*."
-      );
+      return enviarTexto(telefone, T.naoEntendiData);
     }
     const problema = dataValida(iso);
     if (problema) {
@@ -458,15 +428,12 @@ async function tratarTexto(sessao, texto, nomePerfil) {
     if (m) {
       const hora = `${m[1].padStart(2, "0")}:${(m[2] || "00").padStart(2, "0")}`;
       if (!HORARIOS_FIXOS.includes(hora)) {
-        return enviarTexto(
-          telefone,
-          `Não temos esse horário. Atendemos em: ${HORARIOS_FIXOS.join(", ")}.`
-        );
+        return enviarTexto(telefone, T.horarioForaDaGrade(HORARIOS_FIXOS.join(", ")));
       }
       const ocupados = await horariosDisponiveis(sessao.dados.data);
       const livre = ocupados.find((h) => h.hora === hora && h.disponivel);
       if (!livre) {
-        await enviarTexto(telefone, "Esse horário já está ocupado 😕");
+        await enviarTexto(telefone, T.horarioOcupado);
         return mostrarHorarios(sessao);
       }
       sessao.dados.hora = hora;
@@ -475,7 +442,6 @@ async function tratarTexto(sessao, texto, nomePerfil) {
     }
   }
 
-  // Estado inicial ou texto solto: oferece o menu.
   return menu(sessao, nomePerfil);
 }
 
@@ -483,7 +449,7 @@ async function tratarTexto(sessao, texto, nomePerfil) {
 
 async function finalizar(sessao) {
   const telefone = sessao.telefone;
-  const { servicoId, data, hora, nome } = sessao.dados;
+  const { servicoId, data, hora, nome, servicoNome, servicoPreco } = sessao.dados;
 
   const resultado = await criarAgendamento({
     clienteNome: nome,
@@ -496,7 +462,7 @@ async function finalizar(sessao) {
   });
 
   if (!resultado.ok) {
-    await enviarTexto(telefone, resultado.erro || "Não consegui reservar esse horário.");
+    await enviarTexto(telefone, resultado.erro || T.erroAoReservar);
     return mostrarHorarios(sessao);
   }
 
@@ -505,11 +471,13 @@ async function finalizar(sessao) {
 
   return enviarTexto(
     telefone,
-    `Prontinho, *${nome.split(" ")[0]}*! ✅\n\n` +
-      `*${sessao.dados.servicoNome}*\n` +
-      `📅 ${formatarDataLonga(data)} às ${hora}\n` +
-      `💰 R$ ${sessao.dados.servicoPreco}\n\n` +
-      `Te espero lá na Marina Aglli Clinic Beauty. Se precisar remarcar, é só chamar aqui. 💛`
+    T.confirmado({
+      primeiroNome: nome.split(" ")[0],
+      servicoNome,
+      dataFormatada: formatarDataLonga(data),
+      hora,
+      preco: servicoPreco
+    })
   );
 }
 
