@@ -205,6 +205,11 @@
   : "https://marina-agili.onrender.com";
     let token = localStorage.getItem("admin_token") || null;
 
+    // Cabeçalhos autenticados: a listagem de agendamentos agora é protegida.
+    function authHeaders(extra = {}) {
+      return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
+    }
+
     // ============ LOGIN ============
     async function fazerLogin() {
       const usuario = document.getElementById("login-user").value.trim();
@@ -272,7 +277,14 @@
       container.innerHTML = '<p class="loading">Carregando...</p>';
 
       try {
-        const resp = await fetch(url);
+        const resp = await fetch(url, { headers: authHeaders() });
+
+        // Token expirado ou inválido: volta para o login.
+        if (resp.status === 401) {
+          sair();
+          return;
+        }
+
         const ags = await resp.json();
 
         if (ags.length === 0) {
@@ -421,7 +433,8 @@ Até lá! ✨`;
     // ============ RESUMO ============
     async function carregarResumo() {
       try {
-        const resp = await fetch(`${API_URL}/api/agendamentos`);
+        const resp = await fetch(`${API_URL}/api/agendamentos`, { headers: authHeaders() });
+        if (resp.status === 401) return;
         const ags = await resp.json();
 
         const hoje = new Date().toISOString().split("T")[0];

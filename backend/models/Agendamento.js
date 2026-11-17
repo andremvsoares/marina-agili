@@ -8,6 +8,13 @@ const AgendamentoSchema = new mongoose.Schema({
   servicoPreco: { type: Number, required: true },
   data: { type: String, required: true },        // "2026-02-15"
   hora: { type: String, required: true },        // "10:00"
+
+  // Chave única do horário ("2026-02-15T10:00").
+  // Existe só para horários ativos: é removida (unset) quando o agendamento
+  // é cancelado. O índice unique+sparse abaixo é o que impede o app e o bot
+  // de reservarem o mesmo horário no mesmo instante.
+  slot: { type: String, unique: true, sparse: true },
+
   status: {
     type: String,
     enum: ["confirmado", "cancelado", "concluido"],

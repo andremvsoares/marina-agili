@@ -2,8 +2,8 @@
 // CONFIGURAÇÃO
 // ============================================
 
-// ⚠️ TROQUE PELO SEU NÚMERO (55 + DDD + número)
-const NUMERO_WHATSAPP = "5511999999999";
+// Número do WhatsApp da Marina (55 + DDD + número, só dígitos)
+const NUMERO_WHATSAPP = "5519998985805";
 
 // URL do backend
 // Local: http://localhost:4000
