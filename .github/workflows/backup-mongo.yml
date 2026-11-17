@@ -37,7 +37,7 @@ jobs:
           fi
 
       - name: Instalar driver do Mongo
-        run: npm install mongodb@6 bson --no-save --no-audit --no-fund
+        run: npm install mongodb@6 --no-save --no-audit --no-fund
 
       - name: Exportar banco
         env:

@@ -8,8 +8,11 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
-import { MongoClient } from "mongodb";
-import { EJSON } from "bson";
+import { MongoClient, BSON } from "mongodb";
+
+// Usa o EJSON do BSON que acompanha o driver.
+// Instalar `bson` à parte pode trazer uma versão incompatível e quebrar a serialização.
+const { EJSON } = BSON;
 
 const URI = process.env.MONGODB_URI;
 const SAIDA = process.env.SAIDA || "out";

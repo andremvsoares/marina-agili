@@ -8,8 +8,10 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
-import { MongoClient } from "mongodb";
-import { EJSON } from "bson";
+import { MongoClient, BSON } from "mongodb";
+
+// Mesmo EJSON usado no backup (vem do driver).
+const { EJSON } = BSON;
 
 const URI = process.env.MONGODB_URI;
 const ORIGEM = process.argv[2] || "out";
