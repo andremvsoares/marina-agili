@@ -11,21 +11,74 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <title>Painel — Marina Aglli</title>
   <style>
-    .admin-header {
+    body { background: #F7F1E9; }
+
+    /* ---------- layout de web (desktop/tablet) ---------- */
+    .admin-shell {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      min-height: 100vh;
+      max-width: 1500px;
+      margin: 0 auto;
+      background: #FDFAF6;
+    }
+
+    .sidebar {
+      background: #FFF9F3;
+      border-right: 1px solid #EDE4D8;
+      padding: 26px 18px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 0;
+      flex-direction: column;
+      gap: 18px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .sidebar .marca {
+      font-size: 19px;
+      font-weight: 700;
+      color: #8B5A3C;
+      line-height: 1.2;
+    }
+
+    .sidebar .marca small {
+      display: block;
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #B8A695;
+      margin-top: 4px;
+    }
+
+    .sidebar nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .lado-rodape {
+      border-top: 1px solid #EDE4D8;
+      padding-top: 14px;
+      display: flex;
+      flex-direction: column;
       gap: 8px;
     }
-    .admin-header h1 { font-size: 18px; color: #8B5A3C; }
-    .admin-header .quem {
-      display: block;
+
+    .lado-rodape .quem {
       font-size: 11px;
       color: #A89880;
-      font-weight: 400;
-      margin-top: 2px;
+      line-height: 1.4;
     }
+
+    .admin-main {
+      padding: 26px 30px 70px;
+      min-width: 0;
+    }
+
     .btn-sair {
       background: none;
       border: 1px solid #EDE4D8;
@@ -36,25 +89,51 @@
       cursor: pointer;
       white-space: nowrap;
     }
-    .tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-    }
+
+    .tabs { display: contents; }
+
     .tab {
-      padding: 10px 14px;
+      text-align: left;
+      padding: 11px 13px;
       border-radius: 10px;
-      background: #FAF7F2;
+      background: transparent;
       border: none;
-      color: #8B5A3C;
+      color: #6B5B4B;
       font-weight: 600;
       font-size: 13px;
       cursor: pointer;
       white-space: nowrap;
     }
+    .tab:hover { background: #F5EDE3; }
     .tab.ativa { background: #8B5A3C; color: white; }
+
+    .grid-duas {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+
+    .graficos {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .admin-shell { grid-template-columns: 1fr; }
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid #EDE4D8;
+        padding: 16px;
+        gap: 12px;
+      }
+      .sidebar nav { flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+      .admin-main { padding: 18px 16px 60px; }
+      .grid-duas, .graficos { grid-template-columns: 1fr; }
+    }
 
     .agendamento-card {
       background: #FAF7F2;
@@ -107,9 +186,13 @@
 
     .resumo-box {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
       margin-bottom: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .resumo-box { grid-template-columns: 1fr 1fr; }
     }
     .resumo-item {
       background: #FAF7F2;
@@ -278,9 +361,13 @@
     /* ---------- relatórios ---------- */
     .cards-relatorio {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
       margin-bottom: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .cards-relatorio { grid-template-columns: 1fr 1fr; }
     }
     .card-rel {
       background: #FAF7F2;
@@ -329,9 +416,7 @@
   </style>
 </head>
 <body>
-  <div class="app">
-
-    <div id="tela-login" class="tela ativa">
+  <div id="tela-login" class="tela ativa">
       <div class="login-box">
         <h2>🔐 Painel</h2>
         <input type="text" id="login-user" class="input-text" placeholder="Usuário" autocomplete="username">
@@ -342,15 +427,22 @@
     </div>
 
     <div id="tela-painel" class="tela">
-      <div class="admin-header">
-        <h1>
-          👩‍💼 Painel
-          <span class="quem" id="quem-sou"></span>
-        </h1>
-        <button class="btn-sair" onclick="sair()">Sair</button>
-      </div>
+      <div class="admin-shell">
+        <aside class="sidebar">
+          <div class="marca">
+            Marina Aglli
+            <small>painel de gestão</small>
+          </div>
 
-      <div class="tabs" id="tabs"></div>
+          <nav id="tabs"></nav>
+
+          <div class="lado-rodape">
+            <div class="quem" id="quem-sou"></div>
+            <button class="btn-sair" onclick="sair()">Sair</button>
+          </div>
+        </aside>
+
+        <main class="admin-main">
 
       <!-- ================= AGENDA ================= -->
       <div id="tab-agenda" class="tab-content">
@@ -410,6 +502,7 @@
 
       <!-- ================= EQUIPE ================= -->
       <div id="tab-usuarios" class="tab-content" style="display:none;">
+        <div class="grid-duas">
         <div class="card">
           <h2>Novo acesso</h2>
           <input type="text" id="user-nome" class="input-text" placeholder="Nome">
@@ -425,10 +518,12 @@
           <h2>Acessos</h2>
           <div id="lista-usuarios"></div>
         </div>
+        </div>
       </div>
 
       <!-- ================= PRODUTOS ================= -->
       <div id="tab-produtos" class="tab-content" style="display:none;">
+        <div class="grid-duas">
         <div class="card">
           <h2>Novo produto</h2>
           <input id="prod-nome" class="input-text" placeholder="Nome do produto">
@@ -447,6 +542,7 @@
         <div class="card">
           <h2>Produtos cadastrados</h2>
           <div id="lista-produtos"></div>
+        </div>
         </div>
 
         <div class="card">
@@ -489,8 +585,9 @@
         </div>
       </div>
 
+        </main>
+      </div>
     </div>
-  </div>
 
   <div id="modal-fundo" class="modal-fundo" onclick="fecharModal(event)">
     <div class="modal" onclick="event.stopPropagation()">
@@ -1392,6 +1489,7 @@ Até lá! ✨`;
             </div>
           </div>
 
+          <div class="graficos">
           <div class="grafico-box">
             <h4>Faturamento por dia</h4>
             <canvas id="grafico-dias" height="150"></canvas>
@@ -1401,7 +1499,9 @@ Até lá! ✨`;
             <h4>Receita por serviço</h4>
             <canvas id="grafico-servicos" height="150"></canvas>
           </div>
+          </div>
 
+          <div class="grid-duas">
           <div class="grafico-box">
             <h4>Serviços</h4>
             <table class="tabela-rel">
@@ -1446,6 +1546,8 @@ Até lá! ✨`;
                 }
               </tbody>
             </table>
+          </div>
+
           </div>
 
           <button class="btn-secundario" onclick="exportarCsv()">⬇ Exportar CSV</button>
