@@ -486,7 +486,11 @@ async function finalizar(sessao) {
 router.get("/status", (req, res) => {
   res.json({
     configurado: botConfigurado(),
-    modo: process.env.BOT_DRY_RUN === "1" ? "simulado" : "real",
+    modo: !botConfigurado()
+      ? "desligado"
+      : process.env.BOT_DRY_RUN === "1"
+        ? "simulado"
+        : "real",
     verificacaoConfigurada: Boolean(process.env.WHATSAPP_VERIFY_TOKEN)
   });
 });
