@@ -8,17 +8,22 @@
   <meta name="apple-mobile-web-app-title" content="Admin Marina Aglli">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="style.css">
-  <title>Admin — Marina Aglli</title>
+  <title>Painel — Marina Aglli</title>
   <style>
     .admin-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 16px 0;
+      gap: 8px;
     }
-    .admin-header h1 {
-      font-size: 20px;
-      color: #8B5A3C;
+    .admin-header h1 { font-size: 18px; color: #8B5A3C; }
+    .admin-header .quem {
+      display: block;
+      font-size: 11px;
+      color: #A89880;
+      font-weight: 400;
+      margin-top: 2px;
     }
     .btn-sair {
       background: none;
@@ -28,15 +33,17 @@
       font-size: 12px;
       color: #8B5A3C;
       cursor: pointer;
+      white-space: nowrap;
     }
     .tabs {
       display: flex;
       gap: 8px;
       margin-bottom: 16px;
       overflow-x: auto;
+      padding-bottom: 4px;
     }
     .tab {
-      padding: 10px 16px;
+      padding: 10px 14px;
       border-radius: 10px;
       background: #FAF7F2;
       border: none;
@@ -46,10 +53,8 @@
       cursor: pointer;
       white-space: nowrap;
     }
-    .tab.ativa {
-      background: #8B5A3C;
-      color: white;
-    }
+    .tab.ativa { background: #8B5A3C; color: white; }
+
     .agendamento-card {
       background: #FAF7F2;
       border-radius: 12px;
@@ -59,22 +64,11 @@
     }
     .agendamento-card.concluido { border-left-color: #4CAF50; }
     .agendamento-card.cancelado { border-left-color: #C4B5A0; opacity: 0.6; }
-    .agendamento-card h4 {
-      font-size: 15px;
-      color: #4A3B30;
-      margin-bottom: 4px;
-    }
-    .agendamento-card .info {
-      font-size: 13px;
-      color: #6B5B4B;
-      line-height: 1.6;
-    }
-    .agendamento-card .acoes {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-      flex-wrap: wrap;
-    }
+    .agendamento-card.nao_compareceu { border-left-color: #C0392B; opacity: 0.75; }
+    .agendamento-card h4 { font-size: 15px; color: #4A3B30; margin-bottom: 4px; }
+    .agendamento-card .info { font-size: 13px; color: #6B5B4B; line-height: 1.6; }
+    .agendamento-card .acoes { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
     .btn-acao {
       padding: 6px 12px;
       border-radius: 8px;
@@ -100,8 +94,16 @@
       letter-spacing: 0.3px;
       vertical-align: middle;
     }
+    .tag-papel {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #EFE7DC;
+      color: #6B5B4B;
+      font-size: 10px;
+      font-weight: 700;
+    }
 
-    .agendamento-card.nao_compareceu { border-left-color: #C0392B; opacity: 0.75; }
     .resumo-box {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -114,11 +116,7 @@
       padding: 16px;
       text-align: center;
     }
-    .resumo-item .num {
-      font-size: 24px;
-      font-weight: 700;
-      color: #8B5A3C;
-    }
+    .resumo-item .num { font-size: 24px; font-weight: 700; color: #8B5A3C; }
     .resumo-item .lbl {
       font-size: 11px;
       color: #8B6F5C;
@@ -126,6 +124,7 @@
       letter-spacing: 1px;
       margin-top: 4px;
     }
+
     .login-box {
       max-width: 360px;
       margin: 60px auto;
@@ -134,12 +133,112 @@
       border-radius: 20px;
       box-shadow: 0 4px 20px rgba(139, 90, 60, 0.08);
     }
-    .login-box h2 {
-      font-size: 20px;
-      color: #8B5A3C;
-      margin-bottom: 20px;
-      text-align: center;
+    .login-box h2 { font-size: 20px; color: #8B5A3C; margin-bottom: 20px; text-align: center; }
+
+    /* ---------- agenda ---------- */
+    .agenda-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
     }
+    .agenda-nav button {
+      background: #FAF7F2;
+      border: 1px solid #EDE4D8;
+      border-radius: 10px;
+      padding: 8px 12px;
+      color: #8B5A3C;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .agenda-nav input[type="date"] {
+      border: 1px solid #EDE4D8;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: #4A3B30;
+      background: white;
+    }
+    .agenda-titulo {
+      font-size: 13px;
+      color: #8B6F5C;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 16px 0 8px;
+    }
+    .slot {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #FAF7F2;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      border-left: 4px solid #E5D9C9;
+    }
+    .slot .hora {
+      font-weight: 700;
+      color: #8B5A3C;
+      font-size: 14px;
+      min-width: 48px;
+    }
+    .slot .quem { flex: 1; font-size: 13px; color: #4A3B30; }
+    .slot .quem small { display: block; color: #8B6F5C; font-size: 12px; }
+    .slot.livre { border-left-color: #4CAF50; }
+    .slot.livre .quem { color: #7C8C7A; font-style: italic; }
+    .slot.bloqueado { border-left-color: #C0392B; background: #FDF3F3; }
+    .slot .mini {
+      border: 1px solid #EDE4D8;
+      background: white;
+      border-radius: 8px;
+      padding: 5px 9px;
+      font-size: 11px;
+      color: #8B5A3C;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    /* ---------- horários ---------- */
+    .dia-config {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #F0E8DC;
+    }
+    .dia-config .nome-dia {
+      width: 46px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #8B5A3C;
+      padding-top: 6px;
+      flex-shrink: 0;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      border: 1px solid #EDE4D8;
+      background: white;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      color: #8B6F5C;
+      cursor: pointer;
+      user-select: none;
+    }
+    .chip.on { background: #8B5A3C; border-color: #8B5A3C; color: white; }
+
+    .usuario-linha {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid #F0E8DC;
+      font-size: 13px;
+    }
+    .usuario-linha .dados { flex: 1; }
+    .usuario-linha small { color: #A89880; display: block; font-size: 11px; }
   </style>
 </head>
 <body>
@@ -147,7 +246,7 @@
 
     <div id="tela-login" class="tela ativa">
       <div class="login-box">
-        <h2>🔐 Painel Admin</h2>
+        <h2>🔐 Painel</h2>
         <input type="text" id="login-user" class="input-text" placeholder="Usuário" autocomplete="username">
         <input type="password" id="login-pass" class="input-text" placeholder="Senha" autocomplete="current-password">
         <button class="btn-primary" onclick="fazerLogin()">Entrar</button>
@@ -157,17 +256,29 @@
 
     <div id="tela-painel" class="tela">
       <div class="admin-header">
-        <h1>👩‍💼 Admin</h1>
+        <h1>
+          👩‍💼 Painel
+          <span class="quem" id="quem-sou"></span>
+        </h1>
         <button class="btn-sair" onclick="sair()">Sair</button>
       </div>
 
-      <div class="tabs">
-        <button class="tab ativa" onclick="mudarTab('agendamentos', this)">📅 Agendamentos</button>
-        <button class="tab" onclick="mudarTab('servicos', this)">💅 Serviços</button>
-        <button class="tab" onclick="mudarTab('resumo', this)">📊 Resumo</button>
+      <div class="tabs" id="tabs"></div>
+
+      <!-- ================= AGENDA ================= -->
+      <div id="tab-agenda" class="tab-content">
+        <div class="agenda-nav">
+          <button onclick="mudarDia(-1)">‹</button>
+          <input type="date" id="agenda-data" onchange="carregarAgenda()">
+          <button onclick="mudarDia(1)">›</button>
+          <button onclick="irHoje()">Hoje</button>
+          <button onclick="fecharDia()">Fechar o dia</button>
+        </div>
+        <div id="agenda-conteudo"></div>
       </div>
 
-      <div id="tab-agendamentos" class="tab-content">
+      <!-- ================= AGENDAMENTOS ================= -->
+      <div id="tab-agendamentos" class="tab-content" style="display:none;">
         <div class="card">
           <h2>Filtrar por data</h2>
           <input type="date" id="filtro-data" class="input-data" onchange="carregarAgendamentos()">
@@ -176,6 +287,7 @@
         <div id="lista-agendamentos"></div>
       </div>
 
+      <!-- ================= SERVIÇOS ================= -->
       <div id="tab-servicos" class="tab-content" style="display:none;">
         <div class="card">
           <h2>Novo serviço</h2>
@@ -190,59 +302,71 @@
         </div>
       </div>
 
+      <!-- ================= HORÁRIOS ================= -->
+      <div id="tab-horarios" class="tab-content" style="display:none;">
+        <div class="card">
+          <h2>Horário de funcionamento</h2>
+          <p style="font-size:13px;color:#8B6F5C;margin-bottom:12px;">
+            Toque nos horários em que você atende. O que estiver apagado não aparece no site nem no bot.
+          </p>
+          <div id="config-dias"></div>
+
+          <h2 style="margin-top:20px;">Antecedência mínima</h2>
+          <p style="font-size:13px;color:#8B6F5C;margin-bottom:8px;">
+            Quanto tempo antes do atendimento você aceita agendamento.
+          </p>
+          <input type="number" id="config-antecedencia" class="input-text" min="0" max="2880" placeholder="Minutos">
+
+          <button class="btn-primary" onclick="salvarConfig()">Salvar horários</button>
+        </div>
+      </div>
+
+      <!-- ================= EQUIPE ================= -->
+      <div id="tab-usuarios" class="tab-content" style="display:none;">
+        <div class="card">
+          <h2>Novo acesso</h2>
+          <input type="text" id="user-nome" class="input-text" placeholder="Nome">
+          <input type="text" id="user-login" class="input-text" placeholder="Login (sem espaços)">
+          <input type="password" id="user-senha" class="input-text" placeholder="Senha (mín. 6)">
+          <select id="user-papel" class="input-text">
+            <option value="equipe">Equipe — só vê a agenda e marca presença</option>
+            <option value="dono">Dono(a) — acesso total</option>
+          </select>
+          <button class="btn-primary" onclick="criarUsuario()">+ Criar acesso</button>
+        </div>
+        <div class="card">
+          <h2>Acessos</h2>
+          <div id="lista-usuarios"></div>
+        </div>
+      </div>
+
+      <!-- ================= RESUMO ================= -->
       <div id="tab-resumo" class="tab-content" style="display:none;">
         <div class="resumo-box">
-          <div class="resumo-item">
-            <div class="num" id="resumo-hoje">0</div>
-            <div class="lbl">Hoje</div>
-          </div>
-          <div class="resumo-item">
-            <div class="num" id="resumo-mes">0</div>
-            <div class="lbl">Este mês</div>
-          </div>
-          <div class="resumo-item">
-            <div class="num" id="resumo-faturamento">R$ 0</div>
-            <div class="lbl">Faturamento mês</div>
-          </div>
-          <div class="resumo-item">
-            <div class="num" id="resumo-clientes">0</div>
-            <div class="lbl">Clientes únicos</div>
-          </div>
+          <div class="resumo-item"><div class="num" id="resumo-hoje">0</div><div class="lbl">Hoje</div></div>
+          <div class="resumo-item"><div class="num" id="resumo-mes">0</div><div class="lbl">Este mês</div></div>
+          <div class="resumo-item"><div class="num" id="resumo-faturamento">R$ 0</div><div class="lbl">Faturamento mês</div></div>
+          <div class="resumo-item"><div class="num" id="resumo-clientes">0</div><div class="lbl">Clientes únicos</div></div>
         </div>
       </div>
 
     </div>
-
   </div>
 
   <script>
     const API_URL = window.location.hostname === "localhost" || window.location.hostname.startsWith("192.168")
-  ? "http://192.168.15.21:4000"
-  : "https://marina-agili.onrender.com";
+      ? "http://192.168.15.21:4000"
+      : "https://marina-agili.onrender.com";
+
     let token = localStorage.getItem("admin_token") || null;
+    let papel = localStorage.getItem("admin_papel") || null;
+    let nomeUsuario = localStorage.getItem("admin_nome") || "";
 
-    // Números com sinal obrigatório (carregados do backend).
     let clientesComSinal = new Set();
+    let configAtual = null;
 
-    // Cabeçalhos autenticados: a listagem de agendamentos agora é protegida.
     function authHeaders(extra = {}) {
       return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
-    }
-
-    async function carregarClientesComSinal() {
-      try {
-        const resp = await fetch(`${API_URL}/api/clientes/sinal`, { headers: authHeaders() });
-        if (!resp.ok) return;
-        const lista = await resp.json();
-        clientesComSinal = new Set(lista.map((c) => c.whatsapp));
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    // O horário do atendimento já passou?
-    function jaPassou(a) {
-      return new Date(`${a.data}T${a.hora}:00-03:00`) < new Date();
     }
 
     // ============ LOGIN ============
@@ -252,10 +376,7 @@
       const erro = document.getElementById("login-erro");
       erro.textContent = "";
 
-      if (!usuario || !senha) {
-        erro.textContent = "Preencha usuário e senha";
-        return;
-      }
+      if (!usuario || !senha) { erro.textContent = "Preencha usuário e senha"; return; }
 
       try {
         const resp = await fetch(`${API_URL}/api/admin/login`, {
@@ -265,44 +386,260 @@
         });
         const dados = await resp.json();
 
-        if (!resp.ok) {
-          erro.textContent = dados.erro || "Erro ao fazer login";
-          return;
-        }
+        if (!resp.ok) { erro.textContent = dados.erro || "Erro ao fazer login"; return; }
 
         token = dados.token;
+        papel = dados.papel || "dono";
+        nomeUsuario = dados.nome || "";
+
         localStorage.setItem("admin_token", token);
+        localStorage.setItem("admin_papel", papel);
+        localStorage.setItem("admin_nome", nomeUsuario);
+
         mostrarPainel();
-      } catch (err) {
+      } catch {
         erro.textContent = "Erro de conexão";
       }
     }
 
     function sair() {
-      token = null;
+      token = null; papel = null; nomeUsuario = "";
       localStorage.removeItem("admin_token");
+      localStorage.removeItem("admin_papel");
+      localStorage.removeItem("admin_nome");
       document.getElementById("tela-login").classList.add("ativa");
       document.getElementById("tela-painel").classList.remove("ativa");
+    }
+
+    // ============ ABAS ============
+    const ABAS = [
+      { id: "agenda", rotulo: "📅 Agenda", dono: false },
+      { id: "agendamentos", rotulo: "📋 Agendamentos", dono: false },
+      { id: "servicos", rotulo: "💅 Serviços", dono: true },
+      { id: "horarios", rotulo: "⚙️ Horários", dono: true },
+      { id: "usuarios", rotulo: "👥 Equipe", dono: true },
+      { id: "resumo", rotulo: "📊 Resumo", dono: true }
+    ];
+
+    function montarAbas() {
+      const container = document.getElementById("tabs");
+      const visiveis = ABAS.filter((a) => !a.dono || papel === "dono");
+
+      container.innerHTML = visiveis
+        .map((a, i) => `<button class="tab ${i === 0 ? "ativa" : ""}" onclick="mudarTab('${a.id}', this)">${a.rotulo}</button>`)
+        .join("");
+
+      document.querySelectorAll(".tab-content").forEach((c) => (c.style.display = "none"));
+      document.getElementById("tab-" + visiveis[0].id).style.display = "block";
+    }
+
+    function mudarTab(nome, el) {
+      document.querySelectorAll(".tab").forEach((t) => t.classList.remove("ativa"));
+      el.classList.add("ativa");
+      document.querySelectorAll(".tab-content").forEach((c) => (c.style.display = "none"));
+      document.getElementById("tab-" + nome).style.display = "block";
+
+      if (nome === "agenda") carregarAgenda();
+      if (nome === "horarios") carregarConfig();
+      if (nome === "usuarios") carregarUsuarios();
+      if (nome === "servicos") carregarServicosAdmin();
+      if (nome === "resumo") carregarResumo();
+      if (nome === "agendamentos") carregarAgendamentos();
     }
 
     function mostrarPainel() {
       document.getElementById("tela-login").classList.remove("ativa");
       document.getElementById("tela-painel").classList.add("ativa");
+
+      document.getElementById("quem-sou").textContent =
+        nomeUsuario + (papel === "dono" ? " · administradora" : " · equipe");
+
+      montarAbas();
       carregarClientesComSinal();
-      carregarAgendamentos();
-      carregarServicosAdmin();
-      carregarResumo();
+      carregarAgenda();
     }
 
-    // ============ ABAS ============
-    function mudarTab(nome, el) {
-      document.querySelectorAll(".tab").forEach((t) => t.classList.remove("ativa"));
-      el.classList.add("ativa");
-      document.querySelectorAll(".tab-content").forEach((c) => (c.style.display = "none"));
-      document.getElementById(`tab-${nome}`).style.display = "block";
+    // ============ AGENDA ============
+    const hoje = () => new Date().toISOString().slice(0, 10);
+
+    function dataAgenda() {
+      const campo = document.getElementById("agenda-data");
+      if (!campo.value) campo.value = hoje();
+      return campo.value;
     }
 
-    // ============ AGENDAMENTOS ============
+    function mudarDia(delta) {
+      const campo = document.getElementById("agenda-data");
+      const atual = new Date((campo.value || hoje()) + "T12:00:00");
+      atual.setDate(atual.getDate() + delta);
+      campo.value = atual.toISOString().slice(0, 10);
+      carregarAgenda();
+    }
+
+    function irHoje() {
+      document.getElementById("agenda-data").value = hoje();
+      carregarAgenda();
+    }
+
+    async function carregarAgenda() {
+      const data = dataAgenda();
+      const container = document.getElementById("agenda-conteudo");
+      container.innerHTML = '<p class="loading">Carregando...</p>';
+
+      try {
+        const resp = await fetch(`${API_URL}/api/agenda?inicio=${data}&dias=1`, { headers: authHeaders() });
+        if (resp.status === 401) { sair(); return; }
+        if (!resp.ok) { container.innerHTML = '<p class="loading">Erro ao carregar.</p>'; return; }
+
+        const dados = await resp.json();
+        renderizarAgenda(dados.dias[0]);
+      } catch {
+        container.innerHTML = '<p class="loading">Erro de conexão.</p>';
+      }
+    }
+
+    function renderizarAgenda(dia) {
+      const container = document.getElementById("agenda-conteudo");
+
+      if (!dia) { container.innerHTML = '<p class="loading">Sem dados.</p>'; return; }
+
+      if (dia.fechado) {
+        container.innerHTML = `
+          <div class="card">
+            <h2>Fechado</h2>
+            <p style="font-size:13px;color:#8B6F5C;">Não há horários de atendimento configurados para este dia.</p>
+          </div>`;
+        return;
+      }
+
+      const porHora = new Map();
+      for (const ag of dia.agendamentos) {
+        if (ag.status === "cancelado") continue;
+        porHora.set(ag.hora, ag);
+      }
+
+      const bloqueiosPorHora = new Map();
+      let bloqueadoDia = false;
+      for (const b of dia.bloqueios) {
+        if (!b.hora) bloqueadoDia = true;
+        else bloqueiosPorHora.set(b.hora, b);
+      }
+
+      const linhas = dia.horarios.map((h) => {
+        const ag = porHora.get(h.hora);
+        const bloqueio = bloqueiosPorHora.get(h.hora);
+
+        if (ag) {
+          const sinal = clientesComSinal.has(ag.clienteWhatsapp)
+            ? '<span class="tag-sinal">⚠ sinal</span>'
+            : "";
+          return `
+            <div class="slot">
+              <span class="hora">${h.hora}</span>
+              <span class="quem">
+                ${ag.clienteNome} ${sinal}
+                <small>${ag.servicoNome} · R$ ${ag.servicoPreco} · ${ag.clienteWhatsapp}</small>
+              </span>
+              ${montarAcoesAgenda(ag)}
+            </div>`;
+        }
+
+        if (bloqueio) {
+          return `
+            <div class="slot bloqueado">
+              <span class="hora">${h.hora}</span>
+              <span class="quem">Bloqueado <small>${bloqueio.motivo || "sem motivo informado"}</small></span>
+              ${papel === "dono" ? `<button class="mini" onclick="removerBloqueio('${bloqueio._id}')">Liberar</button>` : ""}
+            </div>`;
+        }
+
+        return `
+          <div class="slot livre">
+            <span class="hora">${h.hora}</span>
+            <span class="quem">Livre</span>
+            ${papel === "dono" ? `<button class="mini" onclick="bloquearHorario('${dia.data}','${h.hora}')">Bloquear</button>` : ""}
+          </div>`;
+      });
+
+      const total = dia.agendamentos.filter((a) => a.status !== "cancelado").length;
+      const receita = dia.agendamentos
+        .filter((a) => a.status !== "cancelado")
+        .reduce((s, a) => s + a.servicoPreco, 0);
+
+      container.innerHTML = `
+        <div class="resumo-box">
+          <div class="resumo-item"><div class="num">${total}</div><div class="lbl">Atendimentos</div></div>
+          <div class="resumo-item"><div class="num">R$ ${receita}</div><div class="lbl">Previsto</div></div>
+        </div>
+        ${bloqueadoDia ? '<p style="color:#C0392B;font-size:13px;margin-bottom:10px;">⚠ Dia inteiro bloqueado</p>' : ""}
+        <div class="agenda-titulo">Horários</div>
+        ${linhas.join("")}
+      `;
+    }
+
+    function montarAcoesAgenda(ag) {
+      const passou = new Date(`${ag.data}T${ag.hora}:00-03:00`) < new Date();
+
+      const botoes = [];
+      botoes.push(`<button class="mini" onclick='abrirWhats(${JSON.stringify(ag)})'>💬</button>`);
+
+      if (ag.status === "confirmado" && passou) {
+        botoes.push(`<button class="mini" onclick="marcarCompareceu('${ag._id}')">✅ veio</button>`);
+        botoes.push(`<button class="mini" onclick="marcarFalta('${ag._id}')">🚫 faltou</button>`);
+      }
+      return botoes.join(" ");
+    }
+
+    async function bloquearHorario(data, hora) {
+      const motivo = prompt(`Bloquear ${hora} do dia ${data.split("-").reverse().join("/")}?\n\nMotivo (opcional):`, "");
+      if (motivo === null) return;
+
+      const resp = await fetch(`${API_URL}/api/bloqueios`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ data, hora, motivo })
+      });
+
+      if (!resp.ok) { alert("Erro ao bloquear."); return; }
+      carregarAgenda();
+    }
+
+    async function fecharDia() {
+      const data = dataAgenda();
+      const motivo = prompt(`Fechar o dia inteiro ${data.split("-").reverse().join("/")}?\n\nMotivo (opcional):`, "");
+      if (motivo === null) return;
+
+      const resp = await fetch(`${API_URL}/api/bloqueios`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ data, hora: null, motivo })
+      });
+
+      if (!resp.ok) { alert("Erro ao fechar o dia."); return; }
+      carregarAgenda();
+    }
+
+    async function removerBloqueio(id) {
+      if (!confirm("Liberar este horário?")) return;
+      const resp = await fetch(`${API_URL}/api/bloqueios/${id}`, {
+        method: "DELETE",
+        headers: authHeaders()
+      });
+      if (!resp.ok) { alert("Erro ao liberar."); return; }
+      carregarAgenda();
+    }
+
+    // ============ CLIENTES COM SINAL ============
+    async function carregarClientesComSinal() {
+      try {
+        const resp = await fetch(`${API_URL}/api/clientes/sinal`, { headers: authHeaders() });
+        if (!resp.ok) return;
+        const lista = await resp.json();
+        clientesComSinal = new Set(lista.map((c) => c.whatsapp));
+      } catch {}
+    }
+
+    // ============ AGENDAMENTOS (lista) ============
     async function carregarAgendamentos() {
       const data = document.getElementById("filtro-data").value;
       const url = data
@@ -314,16 +651,10 @@
 
       try {
         const resp = await fetch(url, { headers: authHeaders() });
-
-        // Token expirado ou inválido: volta para o login.
-        if (resp.status === 401) {
-          sair();
-          return;
-        }
-
+        if (resp.status === 401) { sair(); return; }
         const ags = await resp.json();
 
-        if (ags.length === 0) {
+        if (!Array.isArray(ags) || ags.length === 0) {
           container.innerHTML = '<p class="loading">Nenhum agendamento.</p>';
           return;
         }
@@ -348,24 +679,23 @@
               ${
                 a.status === "confirmado"
                   ? jaPassou(a)
-                    ? `
-                <button class="btn-acao btn-concluir" onclick="marcarCompareceu('${a._id}')">✅ Compareceu</button>
-                <button class="btn-acao btn-falta" onclick="marcarFalta('${a._id}')">🚫 Não veio</button>
-              `
-                    : `
-                <button class="btn-acao btn-concluir" onclick="mudarStatus('${a._id}', 'concluido')">✅ Concluir</button>
-                <button class="btn-acao btn-cancelar" onclick="mudarStatus('${a._id}', 'cancelado')">❌ Cancelar</button>
-              `
+                    ? `<button class="btn-acao btn-concluir" onclick="marcarCompareceu('${a._id}')">✅ Compareceu</button>
+                       <button class="btn-acao btn-falta" onclick="marcarFalta('${a._id}')">🚫 Não veio</button>`
+                    : `<button class="btn-acao btn-concluir" onclick="mudarStatus('${a._id}', 'concluido')">✅ Concluir</button>
+                       <button class="btn-acao btn-cancelar" onclick="mudarStatus('${a._id}', 'cancelado')">❌ Cancelar</button>`
                   : ""
               }
             </div>
-          </div>
-        `
+          </div>`
           )
           .join("");
-      } catch (err) {
+      } catch {
         container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
       }
+    }
+
+    function jaPassou(a) {
+      return new Date(`${a.data}T${a.hora}:00-03:00`) < new Date();
     }
 
     function limparFiltro() {
@@ -378,19 +708,12 @@
 
       const resp = await fetch(`${API_URL}/api/agendamentos/${id}/status`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ status: novoStatus })
       });
 
-      if (resp.ok) {
-        carregarAgendamentos();
-        carregarResumo();
-      } else {
-        alert("Erro ao atualizar. Faça login de novo.");
-      }
+      if (resp.ok) { carregarAgendamentos(); carregarResumo(); }
+      else alert("Erro ao atualizar.");
     }
 
     async function marcarFalta(id) {
@@ -404,12 +727,9 @@
         headers: authHeaders()
       });
 
-      if (!resp.ok) {
-        alert("Erro ao registrar a falta.");
-        return;
-      }
-      carregarClientesComSinal();
-      carregarAgendamentos();
+      if (!resp.ok) { alert("Erro ao registrar a falta."); return; }
+      await carregarClientesComSinal();
+      carregarAgenda();
       carregarResumo();
     }
 
@@ -422,12 +742,9 @@
         headers: authHeaders()
       });
 
-      if (!resp.ok) {
-        alert("Erro ao registrar a presença.");
-        return;
-      }
-      carregarClientesComSinal();
-      carregarAgendamentos();
+      if (!resp.ok) { alert("Erro ao registrar a presença."); return; }
+      await carregarClientesComSinal();
+      carregarAgenda();
       carregarResumo();
     }
 
@@ -449,10 +766,7 @@ Até lá! ✨`;
         const resp = await fetch(`${API_URL}/api/servicos`);
         const servicos = await resp.json();
 
-        if (servicos.length === 0) {
-          container.innerHTML = '<p class="loading">Nenhum serviço.</p>';
-          return;
-        }
+        if (!servicos.length) { container.innerHTML = '<p class="loading">Nenhum serviço.</p>'; return; }
 
         container.innerHTML = servicos
           .map(
@@ -463,11 +777,10 @@ Até lá! ✨`;
             <div class="acoes">
               <button class="btn-acao btn-cancelar" onclick="excluirServico('${s._id}', '${s.nome}')">🗑 Desativar</button>
             </div>
-          </div>
-        `
+          </div>`
           )
           .join("");
-      } catch (err) {
+      } catch {
         container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
       }
     }
@@ -477,17 +790,11 @@ Até lá! ✨`;
       const preco = parseFloat(document.getElementById("novo-preco").value);
       const duracao = parseInt(document.getElementById("nova-duracao").value) || 60;
 
-      if (!nome || !preco) {
-        alert("Preencha nome e preço");
-        return;
-      }
+      if (!nome || !preco) { alert("Preencha nome e preço"); return; }
 
       const resp = await fetch(`${API_URL}/api/servicos`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ nome, preco, duracao })
       });
 
@@ -497,36 +804,163 @@ Até lá! ✨`;
         document.getElementById("nova-duracao").value = "60";
         carregarServicosAdmin();
       } else {
-        alert("Erro ao criar serviço. Faça login de novo.");
+        alert("Erro ao criar serviço.");
       }
     }
 
     async function excluirServico(id, nome) {
       if (!confirm(`Desativar o serviço "${nome}"?`)) return;
-
       const resp = await fetch(`${API_URL}/api/servicos/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: authHeaders()
+      });
+      if (resp.ok) carregarServicosAdmin();
+      else alert("Erro ao desativar.");
+    }
+
+    // ============ HORÁRIOS ============
+    const HORAS_DISPONIVEIS = [
+      "07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00",
+      "15:00","16:00","17:00","18:00","19:00","20:00","21:00"
+    ];
+    const NOMES_DIAS = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+
+    async function carregarConfig() {
+      const container = document.getElementById("config-dias");
+      container.innerHTML = '<p class="loading">Carregando...</p>';
+
+      try {
+        const resp = await fetch(`${API_URL}/api/config`);
+        const config = await resp.json();
+        configAtual = config;
+
+        container.innerHTML = [0,1,2,3,4,5,6]
+          .map((dia) => {
+            const ativos = new Set(config.horariosPorDia?.[String(dia)] || []);
+            const chips = HORAS_DISPONIVEIS.map(
+              (h) =>
+                `<span class="chip ${ativos.has(h) ? "on" : ""}" data-dia="${dia}" data-hora="${h}" onclick="toggleChip(this)">${h}</span>`
+            ).join("");
+            return `<div class="dia-config"><div class="nome-dia">${NOMES_DIAS[dia]}</div><div class="chips">${chips}</div></div>`;
+          })
+          .join("");
+
+        document.getElementById("config-antecedencia").value = config.antecedenciaMinimaMinutos ?? 60;
+      } catch {
+        container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
+      }
+    }
+
+    function toggleChip(el) {
+      el.classList.toggle("on");
+    }
+
+    async function salvarConfig() {
+      const horariosPorDia = {};
+      for (const dia of [0,1,2,3,4,5,6]) horariosPorDia[dia] = [];
+
+      document.querySelectorAll(".chip.on").forEach((chip) => {
+        const dia = chip.dataset.dia;
+        const hora = chip.dataset.hora;
+        horariosPorDia[dia].push(hora);
+      });
+
+      const antecedencia = Number(document.getElementById("config-antecedencia").value) || 0;
+
+      const resp = await fetch(`${API_URL}/api/config`, {
+        method: "PUT",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ horariosPorDia, antecedenciaMinimaMinutos: antecedencia })
       });
 
       if (resp.ok) {
-        carregarServicosAdmin();
+        alert("Horários salvos ✅");
+        carregarConfig();
       } else {
-        alert("Erro ao desativar.");
+        const erro = await resp.json().catch(() => ({}));
+        alert(erro.erro || "Erro ao salvar.");
       }
+    }
+
+    // ============ USUÁRIOS ============
+    async function carregarUsuarios() {
+      const container = document.getElementById("lista-usuarios");
+      container.innerHTML = '<p class="loading">Carregando...</p>';
+
+      try {
+        const resp = await fetch(`${API_URL}/api/usuarios`, { headers: authHeaders() });
+        if (resp.status === 403) { container.innerHTML = '<p class="loading">Acesso restrito.</p>'; return; }
+        const usuarios = await resp.json();
+
+        container.innerHTML = usuarios
+          .map(
+            (u) => `
+          <div class="usuario-linha">
+            <div class="dados">
+              ${u.nome} <span class="tag-papel">${u.papel === "dono" ? "dono" : "equipe"}</span>
+              <small>${u.usuario} · ${u.ativo ? "ativo" : "desativado"}${
+                u.ultimoAcessoEm ? " · último acesso " + new Date(u.ultimoAcessoEm).toLocaleDateString("pt-BR") : ""
+              }</small>
+            </div>
+            <button class="mini" onclick="alternarUsuario('${u._id}', ${!u.ativo})">
+              ${u.ativo ? "Desativar" : "Ativar"}
+            </button>
+          </div>`
+          )
+          .join("");
+      } catch {
+        container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
+      }
+    }
+
+    async function criarUsuario() {
+      const nome = document.getElementById("user-nome").value.trim();
+      const usuario = document.getElementById("user-login").value.trim();
+      const senha = document.getElementById("user-senha").value;
+      const papelNovo = document.getElementById("user-papel").value;
+
+      if (!nome || !usuario || !senha) { alert("Preencha nome, login e senha"); return; }
+
+      const resp = await fetch(`${API_URL}/api/usuarios`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ nome, usuario, senha, papel: papelNovo })
+      });
+
+      const dados = await resp.json().catch(() => ({}));
+
+      if (resp.ok) {
+        document.getElementById("user-nome").value = "";
+        document.getElementById("user-login").value = "";
+        document.getElementById("user-senha").value = "";
+        alert(`Acesso criado! Login: ${dados.usuario}`);
+        carregarUsuarios();
+      } else {
+        alert(dados.erro || "Erro ao criar acesso.");
+      }
+    }
+
+    async function alternarUsuario(id, ativo) {
+      const resp = await fetch(`${API_URL}/api/usuarios/${id}`, {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ ativo })
+      });
+      if (resp.ok) carregarUsuarios();
+      else alert("Erro ao alterar.");
     }
 
     // ============ RESUMO ============
     async function carregarResumo() {
       try {
         const resp = await fetch(`${API_URL}/api/agendamentos`, { headers: authHeaders() });
-        if (resp.status === 401) return;
+        if (!resp.ok) return;
         const ags = await resp.json();
 
-        const hoje = new Date().toISOString().split("T")[0];
-        const mesAtual = hoje.substring(0, 7);
+        const h = new Date().toISOString().slice(0, 10);
+        const mesAtual = h.substring(0, 7);
 
-        const hojeCount = ags.filter((a) => a.data === hoje && a.status !== "cancelado").length;
+        const hojeCount = ags.filter((a) => a.data === h && a.status !== "cancelado").length;
         const mesAgs = ags.filter((a) => a.data.startsWith(mesAtual) && a.status !== "cancelado");
         const faturamento = mesAgs.reduce((s, a) => s + a.servicoPreco, 0);
         const clientesUnicos = new Set(mesAgs.map((a) => a.clienteWhatsapp)).size;
@@ -535,15 +969,11 @@ Até lá! ✨`;
         document.getElementById("resumo-mes").textContent = mesAgs.length;
         document.getElementById("resumo-faturamento").textContent = `R$ ${faturamento}`;
         document.getElementById("resumo-clientes").textContent = clientesUnicos;
-      } catch (err) {
-        console.error(err);
-      }
+      } catch {}
     }
 
     // ============ INICIALIZAÇÃO ============
-    if (token) {
-      mostrarPainel();
-    }
+    if (token) mostrarPainel();
   </script>
 </body>
 </html>

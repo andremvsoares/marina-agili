@@ -6,19 +6,19 @@ import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
 import Servico from "./models/Servico.js";
 import Agendamento from "./models/Agendamento.js";
-import adminRoutes, { autenticar } from "./routes/admin.js";
+import adminRoutes, { autenticar, exigirDono } from "./routes/admin.js";
 import whatsappRoutes from "./routes/whatsapp.js";
 import clientesRoutes from "./routes/clientes.js";
+import usuariosRoutes from "./routes/usuarios.js";
+import configRoutes from "./routes/config.js";
+import bloqueiosRoutes from "./routes/bloqueios.js";
+import agendaRoutes from "./routes/agenda.js";
 import {
   marcarFalta,
   registrarComparecimento,
   registrarCancelamento
 } from "./services/clientes.js";
-import {
-  criarAgendamento,
-  horariosDisponiveis,
-  HORARIOS_FIXOS
-} from "./services/booking.js";
+import { criarAgendamento, horariosDisponiveis } from "./services/booking.js";
 
 dotenv.config();
 
@@ -80,6 +80,10 @@ const limiteAgendamento = rateLimit({
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/clientes", clientesRoutes);
+app.use("/api/usuarios", usuariosRoutes);
+app.use("/api/config", configRoutes);
+app.use("/api/bloqueios", bloqueiosRoutes);
+app.use("/api/agenda", agendaRoutes);
 
 // Webhook do WhatsApp. O rate limit global é generoso de propósito:
 // a Meta pode entregar vários eventos seguidos.
@@ -104,6 +108,7 @@ mongoose
 
 // ==================== VALIDAÇÃO ====================
 const RE_DATA = /^\d{4}-\d{2}-\d{2}$/;
+const RE_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 const RE_WHATSAPP = /^\d{10,13}$/;
 const MAX_NOME = 80;
 const MAX_OBS = 300;
@@ -119,7 +124,7 @@ function validarCriacaoAgendamento(body) {
   if (!RE_WHATSAPP.test(clienteWhatsapp.replace(/\D/g, ""))) return "WhatsApp inválido";
   if (!servicoId || !mongoose.Types.ObjectId.isValid(servicoId)) return "Serviço inválido";
   if (!data || !RE_DATA.test(data)) return "Data inválida";
-  if (!hora || !HORARIOS_FIXOS.includes(hora)) return "Horário inválido";
+  if (!hora || !RE_HORA.test(hora)) return "Horário inválido";
   if (observacoes && String(observacoes).length > MAX_OBS) {
     return `Observações devem ter no máximo ${MAX_OBS} caracteres`;
   }
@@ -143,7 +148,7 @@ app.get("/api/servicos", async (req, res) => {
   }
 });
 
-app.post("/api/servicos", autenticar, async (req, res) => {
+app.post("/api/servicos", autenticar, exigirDono, async (req, res) => {
   try {
     const { nome, preco, duracao } = req.body;
     if (!nome || preco === undefined) {
@@ -159,7 +164,7 @@ app.post("/api/servicos", autenticar, async (req, res) => {
   }
 });
 
-app.put("/api/servicos/:id", autenticar, async (req, res) => {
+app.put("/api/servicos/:id", autenticar, exigirDono, async (req, res) => {
   try {
     const servico = await Servico.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(servico);
@@ -168,7 +173,7 @@ app.put("/api/servicos/:id", autenticar, async (req, res) => {
   }
 });
 
-app.delete("/api/servicos/:id", autenticar, async (req, res) => {
+app.delete("/api/servicos/:id", autenticar, exigirDono, async (req, res) => {
   try {
     await Servico.findByIdAndUpdate(req.params.id, { ativo: false });
     res.json({ ok: true });

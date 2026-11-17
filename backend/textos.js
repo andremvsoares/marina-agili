@@ -43,6 +43,7 @@ export const TEXTOS = {
   naoEntendiData: "Não entendi a data 🙈 Pode escrever assim: *25/11* ou *amanhã*.",
   dataPassada: "Essa data já passou. Escolha uma data a partir de hoje.",
   dataMuitoLonge: "Só consigo agendar com até 90 dias de antecedência.",
+  diaFechado: "Não temos atendimento nesse dia. Escolha outra data, por favor.",
   domingo: "Domingo não temos atendimento. Escolha outro dia de segunda a sábado.",
 
   // ---------- horários ----------

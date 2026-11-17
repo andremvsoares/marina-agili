@@ -1,17 +1,14 @@
 // Regras de agendamento — fonte única de verdade.
 // Usado pela API REST (site/painel) e pelo bot do WhatsApp.
-// Qualquer canal novo deve passar por aqui, senão as regras divergem.
 
 import mongoose from "mongoose";
 import Servico from "../models/Servico.js";
 import Cliente from "../models/Cliente.js";
 import Agendamento from "../models/Agendamento.js";
 import { obterOuCriarCliente } from "./clientes.js";
+import { horariosDisponiveis, horariosDoDia, validarAgendamento } from "./agenda.js";
 
-export const HORARIOS_FIXOS = [
-  "09:00", "10:00", "11:00",
-  "14:00", "15:00", "16:00", "17:00", "18:00"
-];
+export { horariosDisponiveis, horariosDoDia };
 
 export const montarSlot = (data, hora) => `${data}T${hora}`;
 
@@ -19,20 +16,6 @@ export const montarSlot = (data, hora) => `${data}T${hora}`;
 
 export async function listarServicos() {
   return Servico.find({ ativo: true }).sort({ nome: 1 });
-}
-
-export async function horariosDisponiveis(data) {
-  const ocupados = await Agendamento.find({
-    data,
-    status: { $in: ["confirmado", "concluido"] }
-  }).select("hora -_id");
-
-  const ocupadosSet = new Set(ocupados.map((a) => a.hora));
-
-  return HORARIOS_FIXOS.map((hora) => ({
-    hora,
-    disponivel: !ocupadosSet.has(hora)
-  }));
 }
 
 // ---------- escrita ----------
@@ -60,8 +43,10 @@ export async function criarAgendamento({
     return { ok: false, status: 404, erro: "Serviço não encontrado" };
   }
 
-  if (!HORARIOS_FIXOS.includes(hora)) {
-    return { ok: false, status: 400, erro: "Horário inválido" };
+  // Regras de agenda: dia aberto, horário válido, sem bloqueio, antecedência.
+  const problema = await validarAgendamento(data, hora);
+  if (problema) {
+    return { ok: false, status: 400, erro: problema };
   }
 
   // Checagem amigável. A garantia real é o índice único em `slot`.

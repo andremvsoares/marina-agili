@@ -10,9 +10,9 @@ import { TEXTOS as T } from "../textos.js";
 import {
   listarServicos,
   horariosDisponiveis,
+  horariosDoDia,
   criarAgendamento,
-  buscarCliente,
-  HORARIOS_FIXOS
+  buscarCliente
 } from "../services/booking.js";
 import { enviarTexto, enviarBotoes, enviarLista, botConfigurado } from "../services/whatsapp.js";
 import {
@@ -56,8 +56,6 @@ const formatarDataLonga = (iso) => {
   return `${DIAS_SEMANA[d.getUTCDay()]}, ${dia} de ${MESES[Number(mes) - 1]}`;
 };
 
-const ehDomingo = (iso) => new Date(iso + "T12:00:00Z").getUTCDay() === 0;
-
 // Interpreta o que a cliente digitou. Devolve ISO ou null.
 function interpretarData(texto) {
   const t = (texto || "").toLowerCase().trim();
@@ -82,12 +80,15 @@ function interpretarData(texto) {
   return null;
 }
 
-function dataValida(iso) {
+async function dataValida(iso) {
   const hoje = hojeISO();
   const limite = somarDias(hoje, 90);
   if (iso < hoje) return T.dataPassada;
   if (iso > limite) return T.dataMuitoLonge;
-  if (ehDomingo(iso)) return T.domingo;
+
+  const horarios = await horariosDoDia(iso);
+  if (horarios.length === 0) return T.diaFechado;
+
   return null;
 }
 
@@ -244,10 +245,11 @@ async function mostrarDatas(sessao) {
   let tentativas = 0;
   let cursor = hoje;
 
-  while (linhas.length < 6 && tentativas < 15) {
+  while (linhas.length < 6 && tentativas < 21) {
     cursor = somarDias(hoje, tentativas);
     tentativas++;
-    if (ehDomingo(cursor)) continue;
+    const horarios = await horariosDoDia(cursor);
+    if (horarios.length === 0) continue; // dia fechado
     linhas.push({ id: `data:${cursor}`, title: formatarData(cursor) });
   }
 
@@ -360,7 +362,7 @@ async function tratarClique(sessao, id) {
 
   if (id.startsWith("data:")) {
     const data = id.slice("data:".length);
-    const problema = dataValida(data);
+    const problema = await dataValida(data);
     if (problema) {
       await enviarTexto(telefone, problema);
       return mostrarDatas(sessao);
@@ -413,7 +415,7 @@ async function tratarTexto(sessao, texto, nomePerfil) {
     if (!iso) {
       return enviarTexto(telefone, T.naoEntendiData);
     }
-    const problema = dataValida(iso);
+    const problema = await dataValida(iso);
     if (problema) {
       await enviarTexto(telefone, problema);
       return mostrarDatas(sessao);
@@ -427,8 +429,9 @@ async function tratarTexto(sessao, texto, nomePerfil) {
     const m = texto.match(/^(\d{1,2})[:h]?(\d{2})?$/);
     if (m) {
       const hora = `${m[1].padStart(2, "0")}:${(m[2] || "00").padStart(2, "0")}`;
-      if (!HORARIOS_FIXOS.includes(hora)) {
-        return enviarTexto(telefone, T.horarioForaDaGrade(HORARIOS_FIXOS.join(", ")));
+      const doDia = await horariosDoDia(sessao.dados.data);
+      if (!doDia.includes(hora)) {
+        return enviarTexto(telefone, T.horarioForaDaGrade(doDia.join(", ")));
       }
       const ocupados = await horariosDisponiveis(sessao.dados.data);
       const livre = ocupados.find((h) => h.hora === hora && h.disponivel);
