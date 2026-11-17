@@ -34,6 +34,7 @@ const AgendamentoSchema = new mongoose.Schema({
   // Histórico de mudanças de status (para a regra das 3 horas).
   canceladoEm: { type: Date, default: null },
   compareceuEm: { type: Date, default: null },
+  remarcadoEm: { type: Date, default: null },
 
   criadoEm: { type: Date, default: Date.now }
 });

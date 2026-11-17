@@ -1,6 +1,7 @@
 // Rotas da ficha da cliente (painel administrativo).
 
 import express from "express";
+import Agendamento from "../models/Agendamento.js";
 import { autenticar } from "./admin.js";
 import {
   buscarFicha,
@@ -40,6 +41,35 @@ router.patch("/:whatsapp/sinal", autenticar, async (req, res) => {
     const resultado = await definirSinal(req.params.whatsapp, obrigatorio);
     if (!resultado.ok) return res.status(resultado.status).json({ erro: resultado.erro });
     res.json(resultado.cliente);
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// Histórico da cliente: atendimentos, gasto total e faltas.
+router.get("/:whatsapp/historico", autenticar, async (req, res) => {
+  try {
+    const numero = String(req.params.whatsapp).replace(/\D/g, "");
+    const cliente = await buscarFicha(numero);
+
+    const agendamentos = await Agendamento.find({ clienteWhatsapp: numero })
+      .sort({ data: -1, hora: -1 })
+      .lean();
+
+    const concluidos = agendamentos.filter((a) => a.status === "concluido");
+    const faltas = agendamentos.filter((a) => a.status === "nao_compareceu");
+
+    res.json({
+      cliente,
+      totais: {
+        agendamentos: agendamentos.length,
+        concluidos: concluidos.length,
+        faltas: faltas.length,
+        gastoTotal: concluidos.reduce((s, a) => s + a.servicoPreco, 0),
+        ultimoAtendimento: concluidos[0]?.data || null
+      },
+      agendamentos: agendamentos.slice(0, 50)
+    });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }

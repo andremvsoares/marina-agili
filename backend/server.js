@@ -13,12 +13,15 @@ import usuariosRoutes from "./routes/usuarios.js";
 import configRoutes from "./routes/config.js";
 import bloqueiosRoutes from "./routes/bloqueios.js";
 import agendaRoutes from "./routes/agenda.js";
+import produtosRoutes from "./routes/produtos.js";
+import relatoriosRoutes from "./routes/relatorios.js";
 import {
   marcarFalta,
   registrarComparecimento,
   registrarCancelamento
 } from "./services/clientes.js";
 import { criarAgendamento, horariosDisponiveis } from "./services/booking.js";
+import { validarAgendamento } from "./services/agenda.js";
 
 dotenv.config();
 
@@ -84,6 +87,8 @@ app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/config", configRoutes);
 app.use("/api/bloqueios", bloqueiosRoutes);
 app.use("/api/agenda", agendaRoutes);
+app.use("/api/produtos", produtosRoutes);
+app.use("/api/relatorios", relatoriosRoutes);
 
 // Webhook do WhatsApp. O rate limit global é generoso de propósito:
 // a Meta pode entregar vários eventos seguidos.
@@ -254,6 +259,50 @@ app.patch("/api/agendamentos/:id/cancelar", autenticar, async (req, res) => {
 
     res.json({ ...agendamento, cancelamentoTardio: resultado.tardio });
   } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// Remarcar: muda data/hora mantendo o mesmo agendamento.
+app.patch("/api/agendamentos/:id/remarcar", autenticar, async (req, res) => {
+  try {
+    const { data, hora } = req.body;
+
+    if (!data || !RE_DATA.test(data)) return res.status(400).json({ erro: "Data inválida" });
+    if (!hora || !RE_HORA.test(hora)) return res.status(400).json({ erro: "Hora inválida" });
+
+    const agendamento = await Agendamento.findById(req.params.id);
+    if (!agendamento) return res.status(404).json({ erro: "Agendamento não encontrado" });
+
+    if (agendamento.status === "cancelado") {
+      return res.status(400).json({ erro: "Agendamento cancelado não pode ser remarcado" });
+    }
+
+    const problema = await validarAgendamento(data, hora);
+    if (problema) return res.status(400).json({ erro: problema });
+
+    const conflito = await Agendamento.findOne({
+      _id: { $ne: agendamento._id },
+      data,
+      hora,
+      status: { $in: ["confirmado", "concluido"] }
+    });
+
+    if (conflito) {
+      return res.status(409).json({ erro: "Já existe agendamento nesse horário" });
+    }
+
+    const atualizado = await Agendamento.findByIdAndUpdate(
+      agendamento._id,
+      { data, hora, slot: `${data}T${hora}`, status: "confirmado", remarcadoEm: new Date() },
+      { new: true }
+    );
+
+    res.json(atualizado);
+  } catch (err) {
+    if (err && err.code === 11000) {
+      return res.status(409).json({ erro: "Horário acabou de ser ocupado" });
+    }
     res.status(500).json({ erro: err.message });
   }
 });

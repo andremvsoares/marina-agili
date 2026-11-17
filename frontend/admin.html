@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Admin Marina Aglli">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <title>Painel — Marina Aglli</title>
   <style>
     .admin-header {
@@ -239,6 +240,92 @@
     }
     .usuario-linha .dados { flex: 1; }
     .usuario-linha small { color: #A89880; display: block; font-size: 11px; }
+
+    /* ---------- modal ---------- */
+    .modal-fundo {
+      position: fixed;
+      inset: 0;
+      background: rgba(74, 59, 48, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50;
+    }
+    .modal-fundo.aberto { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 18px;
+      padding: 20px;
+      max-width: 460px;
+      width: 100%;
+      max-height: 85vh;
+      overflow: auto;
+    }
+    .modal h3 { color: #8B5A3C; font-size: 16px; margin-bottom: 12px; }
+    .modal .fechar {
+      float: right;
+      border: none;
+      background: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #A89880;
+      line-height: 1;
+    }
+    .modal .linha { font-size: 13px; color: #6B5B4B; padding: 4px 0; }
+    .modal .linha strong { color: #4A3B30; }
+
+    /* ---------- relatórios ---------- */
+    .cards-relatorio {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .card-rel {
+      background: #FAF7F2;
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .card-rel .valor { font-size: 20px; font-weight: 700; color: #8B5A3C; }
+    .card-rel .rotulo {
+      font-size: 10px;
+      color: #8B6F5C;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 3px;
+    }
+    .card-rel .extra { font-size: 11px; color: #A89880; margin-top: 4px; }
+
+    .grafico-box {
+      background: #FAF7F2;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .grafico-box h4 {
+      font-size: 12px;
+      color: #8B6F5C;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .tabela-rel { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .tabela-rel th {
+      text-align: left;
+      color: #8B6F5C;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 6px 4px;
+      border-bottom: 1px solid #EDE4D8;
+    }
+    .tabela-rel td {
+      padding: 7px 4px;
+      border-bottom: 1px solid #F5EFE6;
+      color: #4A3B30;
+    }
+    .tabela-rel td.num { text-align: right; white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -340,6 +427,58 @@
         </div>
       </div>
 
+      <!-- ================= PRODUTOS ================= -->
+      <div id="tab-produtos" class="tab-content" style="display:none;">
+        <div class="card">
+          <h2>Novo produto</h2>
+          <input id="prod-nome" class="input-text" placeholder="Nome do produto">
+          <input id="prod-marca" class="input-text" placeholder="Marca (opcional)">
+          <select id="prod-unidade" class="input-text">
+            <option value="ml">ml — mililitro</option>
+            <option value="g">g — grama</option>
+            <option value="un">un — unidade</option>
+          </select>
+          <input id="prod-qtd" type="number" step="0.01" class="input-text" placeholder="Quantidade da embalagem (ex: 500)">
+          <input id="prod-preco" type="number" step="0.01" class="input-text" placeholder="Preço da embalagem (R$)">
+          <p id="prod-custo" style="font-size:12px;color:#8B6F5C;margin:4px 0 8px;"></p>
+          <button class="btn-primary" onclick="criarProduto()">+ Adicionar produto</button>
+        </div>
+
+        <div class="card">
+          <h2>Produtos cadastrados</h2>
+          <div id="lista-produtos"></div>
+        </div>
+
+        <div class="card">
+          <h2>Ficha técnica</h2>
+          <p style="font-size:13px;color:#8B6F5C;margin-bottom:10px;">
+            Quanto de cada produto você usa em <strong>um</strong> atendimento. É isso que calcula o custo real do serviço.
+          </p>
+          <select id="ficha-servico" class="input-text" onchange="carregarFichaTecnica()"></select>
+          <div id="ficha-itens"></div>
+          <button class="btn-primary" onclick="salvarFichaTecnica()">Salvar ficha técnica</button>
+        </div>
+      </div>
+
+      <!-- ================= RELATÓRIOS ================= -->
+      <div id="tab-relatorios" class="tab-content" style="display:none;">
+        <div class="card">
+          <h2>Período</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <input type="date" id="rel-de" class="input-data" onchange="carregarRelatorios()">
+            <span style="color:#A89880;">até</span>
+            <input type="date" id="rel-ate" class="input-data" onchange="carregarRelatorios()">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <button class="btn-secundario" onclick="atalhoPeriodo('mes')">Este mês</button>
+            <button class="btn-secundario" onclick="atalhoPeriodo('mespassado')">Mês passado</button>
+            <button class="btn-secundario" onclick="atalhoPeriodo('30')">Últimos 30 dias</button>
+          </div>
+        </div>
+
+        <div id="rel-conteudo"></div>
+      </div>
+
       <!-- ================= RESUMO ================= -->
       <div id="tab-resumo" class="tab-content" style="display:none;">
         <div class="resumo-box">
@@ -350,6 +489,13 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <div id="modal-fundo" class="modal-fundo" onclick="fecharModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <button class="fechar" onclick="fecharModal()">×</button>
+      <div id="modal-conteudo"></div>
     </div>
   </div>
 
@@ -416,6 +562,8 @@
       { id: "agenda", rotulo: "📅 Agenda", dono: false },
       { id: "agendamentos", rotulo: "📋 Agendamentos", dono: false },
       { id: "servicos", rotulo: "💅 Serviços", dono: true },
+      { id: "produtos", rotulo: "🧴 Produtos", dono: true },
+      { id: "relatorios", rotulo: "📈 Relatórios", dono: true },
       { id: "horarios", rotulo: "⚙️ Horários", dono: true },
       { id: "usuarios", rotulo: "👥 Equipe", dono: true },
       { id: "resumo", rotulo: "📊 Resumo", dono: true }
@@ -443,6 +591,8 @@
       if (nome === "horarios") carregarConfig();
       if (nome === "usuarios") carregarUsuarios();
       if (nome === "servicos") carregarServicosAdmin();
+      if (nome === "produtos") carregarProdutos();
+      if (nome === "relatorios") carregarRelatorios();
       if (nome === "resumo") carregarResumo();
       if (nome === "agendamentos") carregarAgendamentos();
     }
@@ -537,7 +687,9 @@
             <div class="slot">
               <span class="hora">${h.hora}</span>
               <span class="quem">
-                ${ag.clienteNome} ${sinal}
+                <a href="#" onclick="abrirFichaCliente('${ag.clienteWhatsapp}');return false;"
+                   style="color:inherit;text-decoration:none;border-bottom:1px dotted #C4B5A0;">${ag.clienteNome}</a>
+                ${sinal}
                 <small>${ag.servicoNome} · R$ ${ag.servicoPreco} · ${ag.clienteWhatsapp}</small>
               </span>
               ${montarAcoesAgenda(ag)}
@@ -582,6 +734,7 @@
 
       const botoes = [];
       botoes.push(`<button class="mini" onclick='abrirWhats(${JSON.stringify(ag)})'>💬</button>`);
+      botoes.push(`<button class="mini" onclick='abrirRemarcar(${JSON.stringify(ag)})'>↔</button>`);
 
       if (ag.status === "confirmado" && passou) {
         botoes.push(`<button class="mini" onclick="marcarCompareceu('${ag._id}')">✅ veio</button>`);
@@ -970,6 +1123,563 @@ Até lá! ✨`;
         document.getElementById("resumo-faturamento").textContent = `R$ ${faturamento}`;
         document.getElementById("resumo-clientes").textContent = clientesUnicos;
       } catch {}
+    }
+
+    // ============ MODAL ============
+    function abrirModal(html) {
+      document.getElementById("modal-conteudo").innerHTML = html;
+      document.getElementById("modal-fundo").classList.add("aberto");
+    }
+
+    function fecharModal(evento) {
+      if (evento && evento.target !== evento.currentTarget) return;
+      document.getElementById("modal-fundo").classList.remove("aberto");
+    }
+
+    // ============ PRODUTOS ============
+    let produtosCache = [];
+
+    async function carregarProdutos() {
+      const container = document.getElementById("lista-produtos");
+      container.innerHTML = '<p class="loading">Carregando...</p>';
+
+      try {
+        const [respProd, respServ] = await Promise.all([
+          fetch(`${API_URL}/api/produtos`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/servicos`)
+        ]);
+
+        produtosCache = await respProd.json();
+        const servicos = await respServ.json();
+
+        if (!produtosCache.length) {
+          container.innerHTML = '<p class="loading">Nenhum produto cadastrado ainda.</p>';
+        } else {
+          container.innerHTML = produtosCache
+            .map(
+              (p) => `
+            <div class="usuario-linha">
+              <div class="dados">
+                ${p.nome} ${p.marca ? `<small style="display:inline;color:#A89880;">· ${p.marca}</small>` : ""}
+                <small>
+                  R$ ${Number(p.custoUnitario).toFixed(3).replace(".", ",")} por ${p.unidade}
+                  · embalagem ${p.quantidadeEmbalagem}${p.unidade} por R$ ${p.precoEmbalagem}
+                </small>
+              </div>
+              <button class="mini" onclick="desativarProduto('${p._id}', '${p.nome}')">Desativar</button>
+            </div>`
+            )
+            .join("");
+        }
+
+        const select = document.getElementById("ficha-servico");
+        const atual = select.value;
+        select.innerHTML = servicos
+          .map((s) => `<option value="${s._id}">${s.nome}</option>`)
+          .join("");
+
+        if (atual) select.value = atual;
+        if (servicos.length) carregarFichaTecnica();
+      } catch {
+        container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
+      }
+    }
+
+    document.addEventListener("input", (e) => {
+      if (e.target && (e.target.id === "prod-qtd" || e.target.id === "prod-preco")) {
+        const qtd = parseFloat(document.getElementById("prod-qtd").value);
+        const preco = parseFloat(document.getElementById("prod-preco").value);
+        const alvo = document.getElementById("prod-custo");
+
+        if (qtd > 0 && preco >= 0) {
+          const unitario = preco / qtd;
+          alvo.textContent = `Custo por unidade: R$ ${unitario.toFixed(3).replace(".", ",")}`;
+        } else {
+          alvo.textContent = "";
+        }
+      }
+    });
+
+    async function criarProduto() {
+      const nome = document.getElementById("prod-nome").value.trim();
+      const marca = document.getElementById("prod-marca").value.trim();
+      const unidade = document.getElementById("prod-unidade").value;
+      const quantidadeEmbalagem = parseFloat(document.getElementById("prod-qtd").value);
+      const precoEmbalagem = parseFloat(document.getElementById("prod-preco").value);
+
+      if (!nome || !(quantidadeEmbalagem > 0)) {
+        alert("Informe o nome e a quantidade da embalagem");
+        return;
+      }
+      if (!(precoEmbalagem >= 0)) {
+        alert("Informe o preço da embalagem");
+        return;
+      }
+
+      const resp = await fetch(`${API_URL}/api/produtos`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ nome, marca, unidade, quantidadeEmbalagem, precoEmbalagem })
+      });
+
+      const dados = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        alert(dados.erro || "Erro ao criar produto");
+        return;
+      }
+
+      ["prod-nome", "prod-marca", "prod-qtd", "prod-preco"].forEach(
+        (id) => (document.getElementById(id).value = "")
+      );
+      document.getElementById("prod-custo").textContent = "";
+      carregarProdutos();
+    }
+
+    async function desativarProduto(id, nome) {
+      if (!confirm(`Desativar "${nome}"?`)) return;
+      const resp = await fetch(`${API_URL}/api/produtos/${id}`, {
+        method: "DELETE",
+        headers: authHeaders()
+      });
+      if (resp.ok) carregarProdutos();
+      else alert("Erro ao desativar.");
+    }
+
+    async function carregarFichaTecnica() {
+      const servicoId = document.getElementById("ficha-servico").value;
+      const container = document.getElementById("ficha-itens");
+      if (!servicoId) { container.innerHTML = ""; return; }
+
+      container.innerHTML = '<p class="loading">Carregando...</p>';
+
+      try {
+        const resp = await fetch(`${API_URL}/api/produtos/servico/${servicoId}`, { headers: authHeaders() });
+        const servico = await resp.json();
+
+        const usados = new Map(
+          (servico.insumos || []).map((i) => [String(i.produtoId?._id || i.produtoId), i.quantidade])
+        );
+
+        if (!produtosCache.length) {
+          container.innerHTML = '<p class="loading">Cadastre um produto primeiro.</p>';
+          return;
+        }
+
+        container.innerHTML = produtosCache
+          .map(
+            (p) => `
+          <div class="usuario-linha">
+            <div class="dados">
+              ${p.nome}
+              <small>${p.unidade} · R$ ${Number(p.custoUnitario).toFixed(3).replace(".", ",")} / ${p.unidade}</small>
+            </div>
+            <input type="number" step="0.01" min="0" class="input-text"
+              style="max-width:90px;margin:0;"
+              data-produto="${p._id}"
+              placeholder="0"
+              value="${usados.get(String(p._id)) ?? ""}">
+          </div>`
+          )
+          .join("");
+      } catch {
+        container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
+      }
+    }
+
+    async function salvarFichaTecnica() {
+      const servicoId = document.getElementById("ficha-servico").value;
+      if (!servicoId) return;
+
+      const insumos = [];
+      document.querySelectorAll("#ficha-itens input[data-produto]").forEach((input) => {
+        const quantidade = parseFloat(input.value);
+        if (quantidade > 0) {
+          insumos.push({ produtoId: input.dataset.produto, quantidade });
+        }
+      });
+
+      const resp = await fetch(`${API_URL}/api/produtos/servico/${servicoId}`, {
+        method: "PUT",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ insumos })
+      });
+
+      if (resp.ok) alert("Ficha técnica salva ✅");
+      else alert("Erro ao salvar a ficha.");
+    }
+
+    // ============ RELATÓRIOS ============
+    const graficos = {};
+
+    function atalhoPeriodo(tipo) {
+      const hoje = new Date();
+      let de, ate;
+
+      if (tipo === "mes") {
+        de = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        ate = hoje;
+      } else if (tipo === "mespassado") {
+        de = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+        ate = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+      } else {
+        de = new Date(Date.now() - 29 * 86400000);
+        ate = hoje;
+      }
+
+      document.getElementById("rel-de").value = de.toISOString().slice(0, 10);
+      document.getElementById("rel-ate").value = ate.toISOString().slice(0, 10);
+      carregarRelatorios();
+    }
+
+    const brl = (v) =>
+      "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    async function carregarRelatorios() {
+      let de = document.getElementById("rel-de").value;
+      let ate = document.getElementById("rel-ate").value;
+
+      if (!de || !ate) {
+        const hoje = new Date();
+        de = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
+        ate = hoje.toISOString().slice(0, 10);
+        document.getElementById("rel-de").value = de;
+        document.getElementById("rel-ate").value = ate;
+      }
+
+      const container = document.getElementById("rel-conteudo");
+      container.innerHTML = '<p class="loading">Calculando...</p>';
+
+      try {
+        const [resumo, servicos, dias, produtos] = await Promise.all([
+          fetch(`${API_URL}/api/relatorios/resumo?de=${de}&ate=${ate}`, { headers: authHeaders() }).then((r) => r.json()),
+          fetch(`${API_URL}/api/relatorios/servicos?de=${de}&ate=${ate}`, { headers: authHeaders() }).then((r) => r.json()),
+          fetch(`${API_URL}/api/relatorios/por-dia?de=${de}&ate=${ate}`, { headers: authHeaders() }).then((r) => r.json()),
+          fetch(`${API_URL}/api/relatorios/produtos?de=${de}&ate=${ate}`, { headers: authHeaders() }).then((r) => r.json())
+        ]);
+
+        container.innerHTML = `
+          <div class="cards-relatorio">
+            <div class="card-rel">
+              <div class="valor">${brl(resumo.receitaRealizada)}</div>
+              <div class="rotulo">Faturamento</div>
+              <div class="extra">${resumo.atendimentos} atendimentos</div>
+            </div>
+            <div class="card-rel">
+              <div class="valor">${brl(resumo.custoMaterial)}</div>
+              <div class="rotulo">Custo de produtos</div>
+              <div class="extra">material usado</div>
+            </div>
+            <div class="card-rel">
+              <div class="valor">${brl(resumo.margem)}</div>
+              <div class="rotulo">Margem</div>
+              <div class="extra">${resumo.receitaRealizada ? Math.round((resumo.margem / resumo.receitaRealizada) * 100) : 0}% do faturamento</div>
+            </div>
+            <div class="card-rel">
+              <div class="valor">${brl(resumo.ticketMedio)}</div>
+              <div class="rotulo">Ticket médio</div>
+              <div class="extra">por atendimento</div>
+            </div>
+            <div class="card-rel">
+              <div class="valor">${resumo.taxaFalta}%</div>
+              <div class="rotulo">Faltas</div>
+              <div class="extra">${resumo.faltas} de ${resumo.atendimentos + resumo.faltas}</div>
+            </div>
+            <div class="card-rel">
+              <div class="valor">${resumo.ocupacao}%</div>
+              <div class="rotulo">Ocupação</div>
+              <div class="extra">${resumo.slotsOferecidos} horários oferecidos</div>
+            </div>
+          </div>
+
+          <div class="grafico-box">
+            <h4>Faturamento por dia</h4>
+            <canvas id="grafico-dias" height="150"></canvas>
+          </div>
+
+          <div class="grafico-box">
+            <h4>Receita por serviço</h4>
+            <canvas id="grafico-servicos" height="150"></canvas>
+          </div>
+
+          <div class="grafico-box">
+            <h4>Serviços</h4>
+            <table class="tabela-rel">
+              <thead><tr><th>Serviço</th><th class="num">Qtd</th><th class="num">Receita</th><th class="num">Custo</th><th class="num">Margem</th></tr></thead>
+              <tbody>
+                ${
+                  servicos.length
+                    ? servicos
+                        .map(
+                          (s) => `<tr>
+                    <td>${s.nome}</td>
+                    <td class="num">${s.quantidade}</td>
+                    <td class="num">${brl(s.receita)}</td>
+                    <td class="num">${brl(s.custo)}</td>
+                    <td class="num">${brl(s.margem)}</td>
+                  </tr>`
+                        )
+                        .join("")
+                    : '<tr><td colspan="5" style="color:#A89880;">Sem atendimentos no período</td></tr>'
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="grafico-box">
+            <h4>Produtos mais consumidos</h4>
+            <table class="tabela-rel">
+              <thead><tr><th>Produto</th><th class="num">Qtd</th><th class="num">Custo</th></tr></thead>
+              <tbody>
+                ${
+                  produtos.length
+                    ? produtos
+                        .map(
+                          (p) => `<tr>
+                    <td>${p.nome}</td>
+                    <td class="num">${p.quantidade} ${p.unidade}</td>
+                    <td class="num">${brl(p.custo)}</td>
+                  </tr>`
+                        )
+                        .join("")
+                    : '<tr><td colspan="3" style="color:#A89880;">Sem consumo no período</td></tr>'
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <button class="btn-secundario" onclick="exportarCsv()">⬇ Exportar CSV</button>
+        `;
+
+        desenharGraficoDias(dias);
+        desenharGraficoServicos(servicos);
+      } catch {
+        container.innerHTML = '<p class="loading">Erro ao calcular.</p>';
+      }
+    }
+
+    function destruirGrafico(nome) {
+      if (graficos[nome]) {
+        graficos[nome].destroy();
+        delete graficos[nome];
+      }
+    }
+
+    function desenharGraficoDias(dias) {
+      destruirGrafico("dias");
+      if (typeof Chart === "undefined") return;
+
+      const ctx = document.getElementById("grafico-dias");
+      if (!ctx) return;
+
+      graficos.dias = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: dias.map((d) => d.data.slice(8) + "/" + d.data.slice(5, 7)),
+          datasets: [
+            {
+              label: "Receita",
+              data: dias.map((d) => d.receita),
+              borderColor: "#8B5A3C",
+              backgroundColor: "rgba(139,90,60,0.12)",
+              fill: true,
+              tension: 0.3,
+              pointRadius: 2
+            },
+            {
+              label: "Custo",
+              data: dias.map((d) => d.custo),
+              borderColor: "#C0392B",
+              borderDash: [4, 4],
+              pointRadius: 0,
+              fill: false,
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { boxWidth: 12, font: { size: 10 } } } },
+          scales: {
+            y: { beginAtZero: true, ticks: { font: { size: 10 } } },
+            x: { ticks: { font: { size: 10 }, maxRotation: 0, autoSkip: true } }
+          }
+        }
+      });
+    }
+
+    function desenharGraficoServicos(servicos) {
+      destruirGrafico("servicos");
+      if (typeof Chart === "undefined" || !servicos.length) return;
+
+      const ctx = document.getElementById("grafico-servicos");
+      if (!ctx) return;
+
+      graficos.servicos = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: servicos.map((s) => s.nome),
+          datasets: [
+            {
+              label: "Receita",
+              data: servicos.map((s) => s.receita),
+              backgroundColor: "#8B5A3C",
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { font: { size: 10 } } },
+            x: { ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    async function exportarCsv() {
+      const de = document.getElementById("rel-de").value;
+      const ate = document.getElementById("rel-ate").value;
+
+      try {
+        const resp = await fetch(`${API_URL}/api/relatorios/csv?de=${de}&ate=${ate}`, {
+          headers: authHeaders()
+        });
+
+        if (!resp.ok) { alert("Erro ao exportar."); return; }
+
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `agendamentos_${de}_a_${ate}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      } catch {
+        alert("Erro ao exportar.");
+      }
+    }
+
+    // ============ FICHA DA CLIENTE ============
+    async function abrirFichaCliente(whatsapp) {
+      abrirModal('<p class="loading">Carregando ficha...</p>');
+
+      try {
+        const resp = await fetch(`${API_URL}/api/clientes/${whatsapp}/historico`, {
+          headers: authHeaders()
+        });
+        const dados = await resp.json();
+
+        if (!resp.ok) {
+          abrirModal(`<h3>Cliente</h3><p class="linha">${dados.erro || "Não encontrada"}</p>`);
+          return;
+        }
+
+        const c = dados.cliente || {};
+        const t = dados.totais;
+
+        abrirModal(`
+          <h3>${c.nome || "Cliente"}</h3>
+          <div class="linha"><strong>WhatsApp:</strong> ${whatsapp}</div>
+          <div class="linha"><strong>Atendimentos:</strong> ${t.concluidos}</div>
+          <div class="linha"><strong>Faltas:</strong> ${t.faltas}</div>
+          <div class="linha"><strong>Total gasto:</strong> ${brl(t.gastoTotal)}</div>
+          <div class="linha"><strong>Último atendimento:</strong> ${
+            t.ultimoAtendimento ? t.ultimoAtendimento.split("-").reverse().join("/") : "—"
+          }</div>
+          ${
+            c.sinalObrigatorio
+              ? `<p style="color:#A33B45;font-size:13px;margin-top:10px;">⚠ Esta cliente precisa pagar sinal.</p>
+                 <button class="btn-secundario" onclick="liberarSinal('${whatsapp}')">Liberar sinal</button>`
+              : ""
+          }
+          <div style="margin-top:14px;">
+            <h3 style="font-size:13px;">Últimos agendamentos</h3>
+            ${dados.agendamentos
+              .slice(0, 8)
+              .map(
+                (a) => `<div class="linha" style="font-size:12px;border-bottom:1px solid #F5EFE6;padding:6px 0;">
+                  ${a.data.split("-").reverse().join("/")} ${a.hora} · ${a.servicoNome} ·
+                  <span style="color:#8B6F5C;">${a.status}</span>
+                </div>`
+              )
+              .join("")}
+          </div>
+        `);
+      } catch {
+        abrirModal('<h3>Cliente</h3><p class="linha">Erro ao carregar.</p>');
+      }
+    }
+
+    async function liberarSinal(whatsapp) {
+      const resp = await fetch(`${API_URL}/api/clientes/${whatsapp}/sinal`, {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ obrigatorio: false })
+      });
+      if (!resp.ok) { alert("Erro ao liberar."); return; }
+      await carregarClientesComSinal();
+      fecharModal();
+      carregarAgenda();
+    }
+
+    // ============ REMARCAR ============
+    function abrirRemarcar(ag) {
+      abrirModal(`
+        <h3>Remarcar</h3>
+        <p class="linha">${ag.clienteNome} · ${ag.servicoNome}</p>
+        <p class="linha" style="color:#A89880;">Hoje: ${ag.data.split("-").reverse().join("/")} às ${ag.hora}</p>
+
+        <input type="date" id="remarcar-data" class="input-text" value="${ag.data}" onchange="atualizarHorariosRemarcar()">
+        <select id="remarcar-hora" class="input-text"><option>Carregando...</option></select>
+
+        <button class="btn-primary" onclick="confirmarRemarcar('${ag._id}')">Remarcar</button>
+      `);
+      atualizarHorariosRemarcar();
+    }
+
+    async function atualizarHorariosRemarcar() {
+      const data = document.getElementById("remarcar-data").value;
+      const select = document.getElementById("remarcar-hora");
+      if (!data) return;
+
+      select.innerHTML = "<option>Carregando...</option>";
+
+      try {
+        const resp = await fetch(`${API_URL}/api/horarios/${data}`);
+        const horarios = await resp.json();
+        const livres = horarios.filter((h) => h.disponivel);
+
+        select.innerHTML = livres.length
+          ? livres.map((h) => `<option value="${h.hora}">${h.hora}</option>`).join("")
+          : "<option value=''>Nenhum horário livre</option>";
+      } catch {
+        select.innerHTML = "<option value=''>Erro ao carregar</option>";
+      }
+    }
+
+    async function confirmarRemarcar(id) {
+      const data = document.getElementById("remarcar-data").value;
+      const hora = document.getElementById("remarcar-hora").value;
+
+      if (!data || !hora) { alert("Escolha data e horário"); return; }
+
+      const resp = await fetch(`${API_URL}/api/agendamentos/${id}/remarcar`, {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ data, hora })
+      });
+
+      const dados = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) { alert(dados.erro || "Erro ao remarcar"); return; }
+
+      fecharModal();
+      carregarAgenda();
     }
 
     // ============ INICIALIZAÇÃO ============

@@ -52,6 +52,19 @@ Bot WhatsApp ──┘        (regras únicas)
 - `backend/routes/whatsapp.js` — webhook + fluxo conversacional
 - `backend/models/Conversa.js` — sessão persistida
 - **`backend/textos.js` — TODAS as mensagens do bot** (editar aqui, só texto, sem lógica)
+- `backend/services/agenda.js` — horário de funcionamento, bloqueios e disponibilidade
+- `backend/services/clientes.js` — falta, cancelamento tardio (<3h), sinal obrigatório
+- `backend/services/custos.js` — custo de material por serviço (ficha técnica)
+- `backend/routes/relatorios.js` — faturamento, custo, margem, faltas, ocupação e CSV
+
+## Papéis de acesso
+
+| Papel | Pode |
+|---|---|
+| **dono** | tudo: serviços, produtos, relatórios, horários, bloqueios, usuários |
+| **equipe** | agenda e marcação de presença/falta |
+
+Login de emergência pelas variáveis `ADMIN_USER`/`ADMIN_PASS` continua valendo (papel dono).
 
 ## Como testar o bot sem número real
 
@@ -91,6 +104,12 @@ No modo simulado nada é enviado e **nada é gravado no banco**.
 - [x] **Ficha da cliente**: histórico de faltas, cancelamento tardio (<3h), sinal obrigatório,
       endpoints `/api/clientes` e botões "Compareceu"/"Não veio" no painel — 16 testes passando
 - [x] Textos do bot centralizados em `backend/textos.js`
+- [x] **Painel de gestão**: agenda do dia, bloqueio de horário/dia, horário de funcionamento
+      configurável, antecedência mínima, usuários com papéis (dono/equipe)
+- [x] **Produtos e ficha técnica**: custo por unidade, consumo por serviço, custo real do atendimento
+- [x] **Relatórios**: faturamento, custo de material, margem, ticket médio, faltas, ocupação,
+      gráficos (Chart.js) e exportação CSV
+- [x] **Remarcar agendamento** e **ficha da cliente** no painel
 
 ### Em aberto
 - [ ] Render free (dorme após 15 min) → plano pago
