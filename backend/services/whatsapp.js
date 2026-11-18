@@ -21,6 +21,12 @@ function registrar(tipo, para, conteudo) {
 }
 
 async function chamar(payload) {
+  // Com GUPSHUP_API_KEY definida, o envio passa pelo BSP (necessário na
+  // coexistência, porque o número fica sob a API dele).
+  if (process.env.GUPSHUP_API_KEY) {
+    return chamarGupshup(payload);
+  }
+
   const url = `https://graph.facebook.com/${VERSAO}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
   const resp = await fetch(url, {
@@ -38,6 +44,74 @@ async function chamar(payload) {
     return { ok: false, status: resp.status, detalhe };
   }
   return { ok: true, dados: await resp.json() };
+}
+
+// ---------- envio pelo Gupshup (coexistência) ----------
+//
+// Traduz o payload no formato da Meta para o formato do Gupshup.
+// Variáveis necessárias: GUPSHUP_API_KEY, GUPSHUP_APP_NAME e GUPSHUP_SOURCE.
+async function chamarGupshup(payload) {
+  const mensagem = traduzirParaGupshup(payload);
+
+  const corpo = new URLSearchParams({
+    channel: "whatsapp",
+    source: process.env.GUPSHUP_SOURCE || "",
+    destination: String(payload.to || ""),
+    "src.name": process.env.GUPSHUP_APP_NAME || "",
+    message: JSON.stringify(mensagem)
+  });
+
+  const resp = await fetch("https://api.gupshup.io/wa/api/v1/msg", {
+    method: "POST",
+    headers: {
+      apikey: process.env.GUPSHUP_API_KEY,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: corpo.toString()
+  });
+
+  if (!resp.ok) {
+    const detalhe = await resp.text();
+    console.error("❌ Erro ao enviar pelo Gupshup:", resp.status, detalhe);
+    return { ok: false, status: resp.status, detalhe };
+  }
+
+  return { ok: true, dados: await resp.json().catch(() => ({})) };
+}
+
+function traduzirParaGupshup(payload) {
+  if (payload.type === "text") {
+    return { type: "text", text: payload.text?.body || "" };
+  }
+
+  if (payload.type === "interactive" && payload.interactive?.type === "button") {
+    return {
+      type: "quick_reply",
+      content: { type: "text", text: payload.interactive.body?.text || "" },
+      options: (payload.interactive.action?.buttons || []).map((b) => ({
+        type: "text",
+        title: b.reply.title,
+        postbackText: b.reply.id
+      }))
+    };
+  }
+
+  if (payload.type === "interactive" && payload.interactive?.type === "list") {
+    // O Gupshup não tem lista idêntica à da Meta; enviamos como texto numerado
+    // e o bot continua entendendo a resposta em texto.
+    const corpo = payload.interactive.body?.text || "";
+    const linhas = (payload.interactive.action?.sections || [])
+      .flatMap((s) => (s.rows || []).map((r, i) => `${i + 1}. ${r.title}`))
+      .join("\n");
+
+    return { type: "text", text: `${corpo}\n\n${linhas}` };
+  }
+
+  // Fallback: qualquer outro formato vira texto simples.
+  return {
+    type: "text",
+    text: payload.text?.body || payload.interactive?.body?.text || "(mensagem)"
+  };
 }
 
 // ---------- envios ----------

@@ -7,6 +7,7 @@
 import express from "express";
 import crypto from "node:crypto";
 import WebhookEvento from "../models/WebhookEvento.js";
+import { pareceGupshup, converterGupshup } from "../services/gupshup.js";
 import { TEXTOS as T } from "../textos.js";
 import {
   listarServicos,
@@ -131,7 +132,12 @@ router.post("/", (req, res) => {
     return res.status(503).json({ erro: "Bot do WhatsApp não configurado" });
   }
 
-  if (!assinaturaValida(req)) {
+  // O Gupshup (BSP) manda num formato próprio; convertemos para o da Meta.
+  const deGupshup = pareceGupshup(req.body);
+  const corpo = deGupshup ? converterGupshup(req.body) : req.body;
+
+  // A assinatura HMAC é da Meta; o Gupshup usa outro esquema.
+  if (!deGupshup && !assinaturaValida(req)) {
     console.warn("⚠️ Webhook com assinatura inválida");
     return res.sendStatus(403);
   }
@@ -141,7 +147,7 @@ router.post("/", (req, res) => {
 
   registrarEvento(req.body).catch(() => {});
 
-  tratarPayload(req.body).catch((err) => console.error("❌ Erro no webhook:", err));
+  tratarPayload(corpo).catch((err) => console.error("❌ Erro no webhook:", err));
 });
 
 // Guarda o evento para diagnóstico (expira em 24h).
