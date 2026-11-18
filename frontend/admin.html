@@ -77,6 +77,10 @@
       min-width: 0;
     }
 
+    /* botão de menu e fundo escurecido: só aparecem no celular */
+    .btn-menu { display: none; }
+    .menu-overlay { display: none; }
+
     .btn-sair {
       background: none;
       border: 1px solid #EDE4D8;
@@ -125,55 +129,60 @@
         padding-bottom: 74px; /* espaço da barra inferior */
       }
 
-      /* barra lateral vira navegação inferior, estilo aplicativo */
+      /* menu lateral deslizante no celular */
       .sidebar {
         position: fixed;
+        top: 0;
         left: 0;
-        right: 0;
         bottom: 0;
-        top: auto;
-        height: auto;
-        max-height: 74px;
-        flex-direction: row;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 8px;
-        border-right: none;
-        border-top: 1px solid #EDE4D8;
+        width: 250px;
+        max-height: none;
+        height: 100vh;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+        padding: 18px 14px;
+        border-right: 1px solid #EDE4D8;
+        border-top: none;
         background: #FFF9F3;
-        z-index: 60;
-        box-shadow: 0 -4px 16px rgba(139, 90, 60, 0.08);
+        z-index: 70;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: 4px 0 20px rgba(139, 90, 60, 0.12);
       }
 
-      .sidebar .marca { display: none; }
+      .sidebar.aberto { transform: translateX(0); }
+
+      .sidebar .marca { display: block; }
 
       .sidebar nav {
         flex: 1;
-        flex-direction: row;
-        overflow-x: auto;
+        flex-direction: column;
+        overflow-y: auto;
         gap: 4px;
         padding-bottom: 2px;
-        -webkit-overflow-scrolling: touch;
       }
 
       .tab {
-        padding: 9px 12px;
-        font-size: 12px;
-        border-radius: 12px;
+        padding: 11px 12px;
+        font-size: 13px;
+        text-align: left;
+        border-radius: 10px;
       }
 
       .lado-rodape {
-        border-top: none;
-        padding: 0;
-        flex-direction: row;
-        align-items: center;
+        border-top: 1px solid #EDE4D8;
+        padding-top: 12px;
+        flex-direction: column;
+        align-items: stretch;
         gap: 6px;
-        flex: 0 0 auto;
       }
-      .lado-rodape .quem { display: none; }
-      .btn-sair { padding: 8px 10px; font-size: 12px; }
+      .lado-rodape .quem { display: block; }
 
-      .admin-main { padding: 14px 14px 24px; }
+      .btn-menu { display: flex; }
+      .menu-overlay.aberto { display: block; }
+
+      .admin-main { padding: 62px 14px 24px; }
 
       .card { padding: 16px; border-radius: 16px; }
       .card h2 { font-size: 15px; }
@@ -727,6 +736,53 @@
       margin-bottom: 10px;
     }
     .tabela-rel { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .sub-abas {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .sub-aba {
+      padding: 9px 14px;
+      border-radius: 10px;
+      border: 1px solid #EDE4D8;
+      background: #fff;
+      color: #8B6F5C;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .sub-aba.ativa {
+      background: #8B5A3C;
+      border-color: #8B5A3C;
+      color: #fff;
+    }
+
+    .linha-livre {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px solid #F0E8DC;
+      font-size: 13px;
+    }
+    .linha-livre:last-child { border-bottom: none; }
+    .linha-livre .dia-data {
+      min-width: 78px;
+      font-weight: 700;
+      color: #8B5A3C;
+    }
+    .linha-livre .horas { flex: 1; color: #6B5B4B; }
+    .linha-livre .contagem {
+      font-size: 11px;
+      background: #EAF3E8;
+      color: #3F6B38;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
     .tabela-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .tabela-rel th {
       text-align: left;
@@ -796,6 +852,9 @@
     </div>
 
     <div id="tela-painel" class="tela">
+      <button id="btn-menu" class="btn-menu" onclick="alternarMenu()" aria-label="Abrir menu">☰</button>
+      <div id="menu-overlay" class="menu-overlay" onclick="fecharMenu()"></div>
+
       <div class="admin-shell">
         <aside class="sidebar">
           <div class="marca">
@@ -841,12 +900,30 @@
 
       <!-- ================= AGENDAMENTOS ================= -->
       <div id="tab-agendamentos" class="tab-content" style="display:none;">
-        <div class="card">
-          <h2>Filtrar por data</h2>
-          <input type="date" id="filtro-data" class="input-data" onchange="carregarAgendamentos()">
-          <button class="btn-secundario" onclick="limparFiltro()">Ver todos</button>
+        <div class="sub-abas">
+          <button class="sub-aba ativa" onclick="mudarSubAba('lista', this)">📋 Agendamentos</button>
+          <button class="sub-aba" onclick="mudarSubAba('livres', this)">🕐 Horários livres</button>
         </div>
-        <div id="lista-agendamentos"></div>
+
+        <div id="sub-lista">
+          <div class="card">
+            <h2>Filtrar por data</h2>
+            <input type="date" id="filtro-data" class="input-data" onchange="carregarAgendamentos()">
+            <button class="btn-secundario" onclick="limparFiltro()">Ver todos</button>
+          </div>
+          <div id="lista-agendamentos"></div>
+        </div>
+
+        <div id="sub-livres" style="display:none;">
+          <div class="calendario-topo">
+            <button class="nav-mes" onclick="mudarMesLivres(-1)">‹</button>
+            <h2 id="livres-titulo">—</h2>
+            <button class="nav-mes" onclick="mudarMesLivres(1)">›</button>
+            <button class="btn-secundario" onclick="irMesAtualLivres()">Mês atual</button>
+          </div>
+          <div id="livres-resumo"></div>
+          <div id="livres-lista"></div>
+        </div>
       </div>
 
       <!-- ================= SERVIÇOS ================= -->
@@ -1294,6 +1371,16 @@
       document.getElementById("tela-painel").classList.remove("ativa");
     }
 
+    function alternarMenu() {
+      document.querySelector(".sidebar").classList.toggle("aberto");
+      document.getElementById("menu-overlay").classList.toggle("aberto");
+    }
+
+    function fecharMenu() {
+      document.querySelector(".sidebar").classList.remove("aberto");
+      document.getElementById("menu-overlay").classList.remove("aberto");
+    }
+
     // ============ ABAS ============
     const ABAS = [
       { id: "agenda", rotulo: "📅 Agenda", dono: false },
@@ -1327,6 +1414,7 @@
       el.classList.add("ativa");
       document.querySelectorAll(".tab-content").forEach((c) => (c.style.display = "none"));
       document.getElementById("tab-" + nome).style.display = "block";
+      fecharMenu();
 
       if (nome === "agenda") carregarAgenda();
       if (nome === "horarios") carregarConfig();
@@ -1670,6 +1758,84 @@
       } catch {}
     }
 
+    // ============ HORÁRIOS LIVRES ============
+    const DIAS_CURTOS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+    let mesLivres = hoje().slice(0, 7);
+
+    function mudarSubAba(nome, el) {
+      document.querySelectorAll(".sub-aba").forEach((b) => b.classList.remove("ativa"));
+      el.classList.add("ativa");
+
+      document.getElementById("sub-lista").style.display = nome === "lista" ? "block" : "none";
+      document.getElementById("sub-livres").style.display = nome === "livres" ? "block" : "none";
+
+      if (nome === "livres") carregarHorariosLivres();
+    }
+
+    function mudarMesLivres(delta) {
+      const [ano, m] = mesLivres.split("-").map(Number);
+      mesLivres = new Date(Date.UTC(ano, m - 1 + delta, 1)).toISOString().slice(0, 7);
+      carregarHorariosLivres();
+    }
+
+    function irMesAtualLivres() {
+      mesLivres = hoje().slice(0, 7);
+      carregarHorariosLivres();
+    }
+
+    async function carregarHorariosLivres() {
+      const titulo = document.getElementById("livres-titulo");
+      const resumo = document.getElementById("livres-resumo");
+      const lista = document.getElementById("livres-lista");
+
+      lista.innerHTML = '<p class="loading">Carregando...</p>';
+      resumo.innerHTML = "";
+
+      try {
+        const resp = await fetch(`${API_URL}/api/agenda/mes?mes=${mesLivres}`, { headers: authHeaders() });
+        if (resp.status === 401) { sair(); return; }
+
+        const dados = await resp.json();
+        const [ano, mes] = mesLivres.split("-");
+
+        titulo.textContent = `${NOMES_MES_CURTO[Number(mes) - 1]} de ${ano}`;
+
+        const abertos = dados.dias.filter((d) => !d.fechado && !d.bloqueado && !d.passado);
+        const comVaga = abertos.filter((d) => (d.horariosLivres || []).length > 0);
+        const totalLivres = abertos.reduce((s, d) => s + (d.horariosLivres || []).length, 0);
+
+        resumo.innerHTML = `
+          <div class="resumo-box">
+            <div class="resumo-item">
+              <div class="num">${totalLivres}</div>
+              <div class="lbl">Horários livres</div>
+            </div>
+            <div class="resumo-item">
+              <div class="num">${comVaga.length}</div>
+              <div class="lbl">Dias com vaga</div>
+            </div>
+          </div>`;
+
+        if (!comVaga.length) {
+          lista.innerHTML = '<p class="loading">Nenhum horário livre neste mês.</p>';
+          return;
+        }
+
+        lista.innerHTML = comVaga
+          .map(
+            (d) => `
+          <div class="linha-livre">
+            <span class="dia-data">${d.data.slice(8)}/${d.data.slice(5, 7)} · ${DIAS_CURTOS[d.diaSemana]}</span>
+            <span class="horas">${d.horariosLivres.join(" · ")}</span>
+            <span class="contagem">${d.horariosLivres.length}</span>
+          </div>`
+          )
+          .join("");
+      } catch {
+        lista.innerHTML = '<p class="loading">Erro ao carregar.</p>';
+      }
+    }
+
     // ============ AGENDAMENTOS (lista) ============
     async function carregarAgendamentos() {
       const data = document.getElementById("filtro-data").value;
@@ -1691,8 +1857,20 @@
         }
 
         container.innerHTML = ags
-          .map(
-            (a) => `
+          .map((a) => {
+            const pago = (a.pagamentos || []).length
+              ? a.pagamentos
+                  .map((p) => `${NOMES_FORMA[p.forma] || p.forma} ${brl(p.valor)}`)
+                  .join(" + ")
+              : null;
+
+            const linhaPagamento = pago
+              ? `💰 <strong>Recebido:</strong> ${pago}`
+              : a.status === "concluido"
+                ? `<span style="color:#A33B45;">💰 Sem pagamento registrado</span>`
+                : "";
+
+            return `
           <div class="agendamento-card ${a.status}" style="border-left-color:${corDoServico(a.servicoId)}">
             <h4>
               <span class="swatch" style="background:${corDoServico(a.servicoId)}"></span>
@@ -1704,6 +1882,7 @@
               📅 ${a.data.split("-").reverse().join("/")} às ${a.hora}<br>
               📱 ${a.clienteWhatsapp}<br>
               ${a.observacoes ? `📝 ${a.observacoes}<br>` : ""}
+              ${linhaPagamento ? linhaPagamento + "<br>" : ""}
               <strong>Status: ${a.status}</strong>
             </div>
             <div class="acoes">
@@ -1717,9 +1896,14 @@
                        <button class="btn-acao btn-cancelar" onclick="mudarStatus('${a._id}', 'cancelado')">❌ Cancelar</button>`
                   : ""
               }
+              ${
+                a.status === "concluido" && !pago
+                  ? `<button class="btn-acao btn-concluir" onclick='abrirRecebimento(${JSON.stringify(a)})'>💰 Registrar recebimento</button>`
+                  : ""
+              }
             </div>
-          </div>`
-          )
+          </div>`;
+          })
           .join("");
       } catch {
         container.innerHTML = '<p class="loading">Erro ao carregar.</p>';

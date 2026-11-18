@@ -124,12 +124,14 @@ router.get("/mes", autenticar, async (req, res) => {
       const fechadoPeloDia = bloqueioDiaInteiro.has(data);
 
       let disponiveis = 0;
+      const horariosLivres = [];
 
       if (!fechadoPeloDia) {
         for (const hora of base) {
           if (ocupados.has(hora) || bloqueadas.has(hora)) continue;
           if (momentoSP(data, hora) <= limite) continue;
           disponiveis++;
+          horariosLivres.push(hora);
         }
       }
 
@@ -139,6 +141,7 @@ router.get("/mes", autenticar, async (req, res) => {
         diaSemana: diaDaSemana(data),
         total: base.length,
         disponiveis,
+        horariosLivres,
         ocupados: ocupados.size,
         servicos: [...(servicosPorDia.get(data) || [])],
         fechado: base.length === 0,
