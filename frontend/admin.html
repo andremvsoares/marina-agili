@@ -344,6 +344,15 @@
     }
     .pontos { display: flex; gap: 3px; margin-top: auto; }
 
+    .rotulo-campo {
+      display: block;
+      font-size: 11px;
+      color: #8B6F5C;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 10px 0 4px;
+    }
+
     .swatch {
       width: 14px;
       height: 14px;
@@ -772,6 +781,58 @@
         <div id="rel-conteudo"></div>
       </div>
 
+      <!-- ================= PRODUTOS DE VENDA ================= -->
+      <div id="tab-vendas" class="tab-content" style="display:none;">
+        <div class="grid-duas">
+          <div class="card">
+            <h2>Produto para venda</h2>
+            <input id="pv-nome" class="input-text" placeholder="Nome do produto">
+            <input id="pv-marca" class="input-text" placeholder="Marca (opcional)">
+            <input id="pv-preco" type="number" step="0.01" class="input-text" placeholder="Preço de venda (R$)">
+            <input id="pv-custo" type="number" step="0.01" class="input-text" placeholder="Quanto você pagou (opcional)">
+            <button class="btn-primary" onclick="criarProdutoVenda()">+ Adicionar</button>
+          </div>
+
+          <div class="card">
+            <h2>Catálogo</h2>
+            <div id="lista-produtos-venda"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Registrar venda para cliente</h2>
+          <p style="font-size:13px;color:#8B6F5C;margin-bottom:10px;">
+            A venda entra no total gasto da cliente.
+          </p>
+
+          <div class="grid-duas" style="gap:10px;">
+            <div>
+              <label class="rotulo-campo">Cliente</label>
+              <select id="venda-cliente" class="input-text" onchange="alternarClienteNova()">
+                <option value="">— cliente nova —</option>
+              </select>
+              <input id="venda-cliente-novo" class="input-text" placeholder="WhatsApp da cliente nova" inputmode="numeric">
+            </div>
+
+            <div>
+              <label class="rotulo-campo">Produto</label>
+              <select id="venda-produto" class="input-text"></select>
+              <input id="venda-qtd" type="number" min="1" step="1" value="1" class="input-text" placeholder="Quantidade">
+            </div>
+          </div>
+
+          <label class="rotulo-campo">Data</label>
+          <input type="date" id="venda-data" class="input-text">
+
+          <button class="btn-primary" onclick="registrarVenda()">Registrar venda</button>
+        </div>
+
+        <div class="card">
+          <h2>Vendas recentes</h2>
+          <div id="lista-vendas"></div>
+        </div>
+      </div>
+
       <!-- ================= CLIENTES ================= -->
       <div id="tab-clientes" class="tab-content" style="display:none;">
         <div class="card">
@@ -897,6 +958,8 @@
       { id: "agenda", rotulo: "📅 Agenda", dono: false },
       { id: "agendamentos", rotulo: "📋 Agendamentos", dono: false },
       { id: "servicos", rotulo: "💅 Serviços", dono: true },
+      { id: "produtos", rotulo: "🧾 Precificação", dono: true },
+      { id: "vendas", rotulo: "🛍️ Produtos", dono: true },
       { id: "clientes", rotulo: "👤 Clientes", dono: true },
       { id: "produtos", rotulo: "🧴 Produtos", dono: true },
       { id: "relatorios", rotulo: "📈 Relatórios", dono: true },
@@ -928,6 +991,7 @@
       if (nome === "usuarios") carregarUsuarios();
       if (nome === "servicos") carregarServicosAdmin();
       if (nome === "clientes") carregarClientes();
+      if (nome === "vendas") carregarVendas();
       if (nome === "produtos") carregarProdutos();
       if (nome === "relatorios") carregarRelatorios();
       if (nome === "resumo") carregarResumo();
@@ -2068,6 +2132,197 @@ Até lá! ✨`;
       }
     }
 
+    // ============ PRODUTOS DE VENDA ============
+    let catalogoVenda = [];
+
+    async function carregarVendas() {
+      const container = document.getElementById("lista-produtos-venda");
+      container.innerHTML = '<p class="loading">Carregando...</p>';
+
+      try {
+        const [respProd, respClientes, respVendas] = await Promise.all([
+          fetch(`${API_URL}/api/vendas/produtos`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/clientes`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/vendas`, { headers: authHeaders() })
+        ]);
+
+        catalogoVenda = await respProd.json();
+        const clientes = (await respClientes.json()).clientes || [];
+        const vendas = await respVendas.json();
+
+        renderizarCatalogoVenda();
+
+        const selectCliente = document.getElementById("venda-cliente");
+        const clienteAtual = selectCliente.value;
+        selectCliente.innerHTML = [
+          '<option value="">— cliente nova —</option>',
+          ...clientes.map((c) => `<option value="${c.whatsapp}">${c.nome} · ${c.whatsapp}</option>`)
+        ].join("");
+        if (clienteAtual) selectCliente.value = clienteAtual;
+
+        const selectProduto = document.getElementById("venda-produto");
+        const produtoAtual = selectProduto.value;
+        selectProduto.innerHTML = catalogoVenda.length
+          ? catalogoVenda.map((p) => `<option value="${p._id}">${p.nome} — ${brl(p.preco)}</option>`).join("")
+          : '<option value="">Cadastre um produto primeiro</option>';
+        if (produtoAtual) selectProduto.value = produtoAtual;
+
+        const campoData = document.getElementById("venda-data");
+        if (!campoData.value) campoData.value = hoje();
+
+        renderizarVendas(vendas.vendas || [], vendas.total || 0);
+        alternarClienteNova();
+      } catch {
+        container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
+      }
+    }
+
+    function renderizarCatalogoVenda() {
+      const container = document.getElementById("lista-produtos-venda");
+
+      if (!catalogoVenda.length) {
+        container.innerHTML = '<p class="loading">Nenhum produto cadastrado.</p>';
+        return;
+      }
+
+      container.innerHTML = catalogoVenda
+        .map(
+          (p) => `
+        <div class="usuario-linha">
+          <div class="dados">
+            ${p.nome} ${p.marca ? `<small style="display:inline;color:#A89880;">· ${p.marca}</small>` : ""}
+            <small>Venda ${brl(p.preco)}${p.custo > 0 ? ` · custo ${brl(p.custo)} · lucro ${brl(p.preco - p.custo)}` : ""}</small>
+          </div>
+          <button class="mini" onclick="removerProdutoVenda('${p._id}', '${p.nome}')">Desativar</button>
+        </div>`
+        )
+        .join("");
+    }
+
+    async function criarProdutoVenda() {
+      const nome = document.getElementById("pv-nome").value.trim();
+      const marca = document.getElementById("pv-marca").value.trim();
+      const preco = parseFloat(document.getElementById("pv-preco").value);
+      const custo = parseFloat(document.getElementById("pv-custo").value) || 0;
+
+      if (!nome || !(preco >= 0)) {
+        alert("Informe o nome e o preço de venda");
+        return;
+      }
+
+      const resp = await fetch(`${API_URL}/api/vendas/produtos`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ nome, marca, preco, custo })
+      });
+
+      const dados = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        alert(dados.erro || "Erro ao cadastrar produto");
+        return;
+      }
+
+      ["pv-nome", "pv-marca", "pv-preco", "pv-custo"].forEach(
+        (id) => (document.getElementById(id).value = "")
+      );
+      carregarVendas();
+    }
+
+    async function removerProdutoVenda(id, nome) {
+      if (!confirm(`Desativar "${nome}" do catálogo?`)) return;
+      const resp = await fetch(`${API_URL}/api/vendas/produtos/${id}`, {
+        method: "DELETE",
+        headers: authHeaders()
+      });
+      if (resp.ok) carregarVendas();
+      else alert("Erro ao desativar.");
+    }
+
+    function alternarClienteNova() {
+      const escolhido = document.getElementById("venda-cliente").value;
+      const campoNovo = document.getElementById("venda-cliente-novo");
+      campoNovo.style.display = escolhido ? "none" : "block";
+    }
+
+    async function registrarVenda() {
+      const clienteSelecionada = document.getElementById("venda-cliente").value;
+      const clienteNova = document.getElementById("venda-cliente-novo").value.trim();
+      const whatsapp = clienteSelecionada || clienteNova;
+
+      const produtoId = document.getElementById("venda-produto").value;
+      const quantidade = Number(document.getElementById("venda-qtd").value) || 1;
+      const data = document.getElementById("venda-data").value || hoje();
+
+      if (!whatsapp) { alert("Escolha a cliente ou informe o WhatsApp"); return; }
+      if (!produtoId) { alert("Escolha o produto"); return; }
+
+      const resp = await fetch(`${API_URL}/api/vendas`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          clienteWhatsapp: whatsapp,
+          itens: [{ produtoId, quantidade }],
+          data
+        })
+      });
+
+      const dados = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        alert(dados.erro || "Erro ao registrar a venda");
+        return;
+      }
+
+      alert(`Venda registrada: ${brl(dados.total)} ✅`);
+      document.getElementById("venda-qtd").value = "1";
+      document.getElementById("venda-cliente-novo").value = "";
+
+      carregarVendas();
+      carregarClientes();
+    }
+
+    function renderizarVendas(lista, total) {
+      const container = document.getElementById("lista-vendas");
+
+      if (!lista.length) {
+        container.innerHTML = '<p class="loading">Nenhuma venda registrada.</p>';
+        return;
+      }
+
+      container.innerHTML = `
+        <p style="font-size:13px;color:#8B6F5C;margin-bottom:10px;">
+          ${lista.length} venda(s) · ${brl(total)}
+        </p>
+        ${lista
+          .map(
+            (v) => `
+          <div class="usuario-linha">
+            <div class="dados">
+              <a href="#" onclick="abrirCliente('${v.clienteWhatsapp}');return false;"
+                 style="color:inherit;text-decoration:none;border-bottom:1px dotted #C4B5A0;">${v.clienteNome}</a>
+              <small>
+                ${v.data.split("-").reverse().join("/")} ·
+                ${v.itens.map((i) => `${i.quantidade}× ${i.nome}`).join(", ")}
+              </small>
+            </div>
+            <strong style="font-size:13px;color:#8B5A3C;">${brl(v.total)}</strong>
+            <button class="mini" onclick="removerVenda('${v._id}')">Excluir</button>
+          </div>`
+          )
+          .join("")}`;
+    }
+
+    async function removerVenda(id) {
+      if (!confirm("Excluir esta venda?")) return;
+      const resp = await fetch(`${API_URL}/api/vendas/${id}`, {
+        method: "DELETE",
+        headers: authHeaders()
+      });
+      if (resp.ok) { carregarVendas(); carregarClientes(); }
+      else alert("Erro ao excluir.");
+    }
+
     // ============ CLIENTES ============
     function filtroClientes(tipo) {
       const agora = new Date();
@@ -2129,17 +2384,18 @@ Até lá! ✨`;
           <div class="rotulo">Clientes</div>
         </div>
         <div class="card-rel">
-          <div class="valor">${brl(t.receita)}</div>
-          <div class="rotulo">Receita no período</div>
+          <div class="valor">${brl(t.totalGasto)}</div>
+          <div class="rotulo">Total no período</div>
+          <div class="extra">${brl(t.receitaServicos)} em serviços</div>
         </div>
         <div class="card-rel">
-          <div class="valor">${t.atendimentos}</div>
-          <div class="rotulo">Atendimentos</div>
+          <div class="valor">${brl(t.receitaProdutos)}</div>
+          <div class="rotulo">Produtos vendidos</div>
         </div>
         <div class="card-rel">
           <div class="valor">${t.faltas}</div>
           <div class="rotulo">Faltas</div>
-          <div class="extra">${t.cancelamentos} cancelamentos</div>
+          <div class="extra">${t.atendimentos} atendimentos · ${t.cancelamentos} cancelamentos</div>
         </div>
       `;
     }
@@ -2197,9 +2453,10 @@ Até lá! ✨`;
             <tr>
               <th>Cliente</th>
               <th class="num">Atend.</th>
-              <th class="num">Receita</th>
+              <th class="num">Serviços</th>
+              <th class="num">Produtos</th>
+              <th class="num">Total</th>
               <th class="num">Faltas</th>
-              <th class="num">Cancel.</th>
               <th class="num">Último</th>
             </tr>
           </thead>
@@ -2215,10 +2472,11 @@ Até lá! ✨`;
                 </td>
                 <td class="num">${c.concluidos}</td>
                 <td class="num">${brl(c.receita)}</td>
+                <td class="num">${brl(c.receitaProdutos)}</td>
+                <td class="num" style="font-weight:700;color:#8B5A3C;">${brl(c.totalGasto)}</td>
                 <td class="num" style="${c.faltas > 0 ? "color:#A33B45;font-weight:700;" : ""}">${c.faltas}</td>
-                <td class="num">${c.cancelados}</td>
                 <td class="num" style="font-size:11px;color:#8B6F5C;">
-                  ${c.ultimoAtendimento ? c.ultimoAtendimento.split("-").reverse().join("/") : "—"}
+                  ${c.ultimaVisita ? c.ultimaVisita.split("-").reverse().join("/") : "—"}
                 </td>
               </tr>`
               )
@@ -2328,16 +2586,11 @@ Até lá! ✨`;
 
           <div class="cards-relatorio" style="margin:14px 0;">
             <div class="card-rel"><div class="valor">${t.concluidos}</div><div class="rotulo">Atendimentos</div></div>
+            <div class="card-rel"><div class="valor">${brl(t.gastoServicos)}</div><div class="rotulo">Em serviços</div></div>
+            <div class="card-rel"><div class="valor">${brl(t.gastoProdutos)}</div><div class="rotulo">Em produtos</div><div class="extra">${t.compras} compra(s)</div></div>
             <div class="card-rel"><div class="valor">${brl(t.gastoTotal)}</div><div class="rotulo">Total gasto</div></div>
-            <div class="card-rel"><div class="valor">${t.faltas}</div><div class="rotulo">Faltas</div></div>
-            <div class="card-rel"><div class="valor">${t.cancelados}</div><div class="rotulo">Cancelamentos</div></div>
+            <div class="card-rel"><div class="valor">${t.faltas}</div><div class="rotulo">Faltas</div><div class="extra">${t.cancelados} cancelamentos</div></div>
             <div class="card-rel"><div class="valor">${brl(t.ticketMedio)}</div><div class="rotulo">Ticket médio</div></div>
-            <div class="card-rel">
-              <div class="valor" style="font-size:14px;">
-                ${t.ultimoAtendimento ? t.ultimoAtendimento.split("-").reverse().join("/") : "—"}
-              </div>
-              <div class="rotulo">Último atendimento</div>
-            </div>
           </div>
 
           ${
@@ -2353,6 +2606,24 @@ Até lá! ✨`;
           </div>
 
           <div>${lista}</div>
+
+          ${
+            (dados.vendas || []).length
+              ? `<h4 style="font-size:12px;color:#8B6F5C;text-transform:uppercase;letter-spacing:1px;margin:16px 0 6px;">
+                   Produtos comprados
+                 </h4>
+                 ${dados.vendas
+                   .map(
+                     (v) => `
+                   <div class="linha" style="font-size:12px;border-bottom:1px solid #F5EFE6;padding:7px 0;display:flex;align-items:center;gap:6px;">
+                     <span style="min-width:88px;">${v.data.split("-").reverse().join("/")}</span>
+                     <span style="flex:1;">${v.itens.map((i) => `${i.quantidade}× ${i.nome}`).join(", ")}</span>
+                     <span style="min-width:64px;text-align:right;">${brl(v.total)}</span>
+                   </div>`
+                   )
+                   .join("")}`
+              : ""
+          }
         `);
       } catch {
         abrirModal('<h3>Cliente</h3><p class="linha">Erro ao carregar.</p>');

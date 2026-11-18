@@ -1,8 +1,10 @@
 // Rotas de clientes: ranking, pendências e ficha detalhada.
+// O "total gasto" soma atendimentos concluídos + produtos vendidos.
 
 import express from "express";
 import Agendamento from "../models/Agendamento.js";
 import Cliente from "../models/Cliente.js";
+import Venda from "../models/Venda.js";
 import { autenticar, exigirDono } from "./admin.js";
 import {
   buscarFicha,
@@ -14,6 +16,7 @@ import {
 const router = express.Router();
 
 const RE_DATA = /^\d{4}-\d{2}-\d{2}$/;
+const arredondar = (n) => Math.round(Number(n || 0) * 100) / 100;
 
 function intervalo(query) {
   const de = RE_DATA.test(query.de || "") ? query.de : null;
@@ -21,76 +24,132 @@ function intervalo(query) {
   return { de, ate };
 }
 
+function filtroPorData(de, ate) {
+  const filtro = {};
+  if (de || ate) {
+    filtro.data = {};
+    if (de) filtro.data.$gte = de;
+    if (ate) filtro.data.$lte = ate;
+  }
+  return filtro;
+}
+
 // ---------- ranking de clientes ----------
 router.get("/", autenticar, exigirDono, async (req, res) => {
   try {
     const { de, ate } = intervalo(req.query);
+    const filtro = filtroPorData(de, ate);
 
-    const filtro = {};
-    if (de || ate) {
-      filtro.data = {};
-      if (de) filtro.data.$gte = de;
-      if (ate) filtro.data.$lte = ate;
-    }
-
-    const agregado = await Agendamento.aggregate([
-      { $match: filtro },
-      {
-        $group: {
-          _id: "$clienteWhatsapp",
-          nome: { $last: "$clienteNome" },
-          total: { $sum: 1 },
-          concluidos: { $sum: { $cond: [{ $eq: ["$status", "concluido"] }, 1, 0] } },
-          faltas: { $sum: { $cond: [{ $eq: ["$status", "nao_compareceu"] }, 1, 0] } },
-          cancelados: { $sum: { $cond: [{ $eq: ["$status", "cancelado"] }, 1, 0] } },
-          receita: {
-            $sum: { $cond: [{ $eq: ["$status", "concluido"] }, "$servicoPreco", 0] }
-          },
-          ultimoAtendimento: {
-            $max: { $cond: [{ $eq: ["$status", "concluido"] }, "$data", null] }
+    const [porAtendimento, porVenda] = await Promise.all([
+      Agendamento.aggregate([
+        { $match: filtro },
+        {
+          $group: {
+            _id: "$clienteWhatsapp",
+            nome: { $last: "$clienteNome" },
+            total: { $sum: 1 },
+            concluidos: { $sum: { $cond: [{ $eq: ["$status", "concluido"] }, 1, 0] } },
+            faltas: { $sum: { $cond: [{ $eq: ["$status", "nao_compareceu"] }, 1, 0] } },
+            cancelados: { $sum: { $cond: [{ $eq: ["$status", "cancelado"] }, 1, 0] } },
+            receita: {
+              $sum: { $cond: [{ $eq: ["$status", "concluido"] }, "$servicoPreco", 0] }
+            },
+            ultimoAtendimento: {
+              $max: { $cond: [{ $eq: ["$status", "concluido"] }, "$data", null] }
+            }
           }
         }
-      },
-      { $sort: { receita: -1, concluidos: -1 } }
+      ]),
+      Venda.aggregate([
+        { $match: filtro },
+        {
+          $group: {
+            _id: "$clienteWhatsapp",
+            nome: { $last: "$clienteNome" },
+            quantidade: { $sum: 1 },
+            receitaProdutos: { $sum: "$total" },
+            ultimaVenda: { $max: "$data" }
+          }
+        }
+      ])
     ]);
 
-    const numeros = agregado.map((c) => c._id);
-    const fichas = await Cliente.find({ whatsapp: { $in: numeros } })
-      .select("whatsapp nome sinalObrigatorio noShows cancelamentosTardios")
-      .lean();
+    const mapa = new Map();
 
-    const porNumero = new Map(fichas.map((f) => [f.whatsapp, f]));
-
-    let clientes = agregado.map((c) => {
-      const ficha = porNumero.get(c._id) || {};
-      return {
+    for (const c of porAtendimento) {
+      mapa.set(c._id, {
         whatsapp: c._id,
-        nome: ficha.nome || c.nome,
+        nome: c.nome,
         total: c.total,
         concluidos: c.concluidos,
         faltas: c.faltas,
         cancelados: c.cancelados,
-        receita: Math.round(c.receita * 100) / 100,
+        receita: arredondar(c.receita),
+        receitaProdutos: 0,
+        vendas: 0,
         ultimoAtendimento: c.ultimoAtendimento,
+        ultimaCompra: null
+      });
+    }
+
+    for (const v of porVenda) {
+      const atual = mapa.get(v._id) || {
+        whatsapp: v._id,
+        nome: v.nome,
+        total: 0,
+        concluidos: 0,
+        faltas: 0,
+        cancelados: 0,
+        receita: 0,
+        ultimoAtendimento: null
+      };
+      atual.receitaProdutos = arredondar(v.receitaProdutos);
+      atual.vendas = v.quantidade;
+      atual.ultimaCompra = v.ultimaVenda;
+      mapa.set(v._id, atual);
+    }
+
+    const numeros = [...mapa.keys()];
+    const fichas = await Cliente.find({ whatsapp: { $in: numeros } })
+      .select("whatsapp nome sinalObrigatorio")
+      .lean();
+
+    const porNumero = new Map(fichas.map((f) => [f.whatsapp, f]));
+
+    let clientes = [...mapa.values()].map((c) => {
+      const ficha = porNumero.get(c.whatsapp) || {};
+      const totalGasto = arredondar(c.receita + c.receitaProdutos);
+      const ultimaVisita = [c.ultimoAtendimento, c.ultimaCompra].filter(Boolean).sort().pop() || null;
+
+      return {
+        ...c,
+        nome: ficha.nome || c.nome,
+        totalGasto,
+        ultimaVisita,
         sinalObrigatorio: ficha.sinalObrigatorio === true
       };
     });
 
     const busca = String(req.query.busca || "").trim().toLowerCase();
     if (busca) {
+      const digitos = busca.replace(/\D/g, "");
       clientes = clientes.filter(
         (c) =>
           String(c.nome || "").toLowerCase().includes(busca) ||
-          String(c.whatsapp).includes(busca.replace(/\D/g, ""))
+          (digitos && String(c.whatsapp).includes(digitos))
       );
     }
+
+    clientes.sort((a, b) => b.totalGasto - a.totalGasto);
 
     res.json({
       de,
       ate,
       totais: {
         clientes: clientes.length,
-        receita: Math.round(clientes.reduce((s, c) => s + c.receita, 0) * 100) / 100,
+        receitaServicos: arredondar(clientes.reduce((s, c) => s + c.receita, 0)),
+        receitaProdutos: arredondar(clientes.reduce((s, c) => s + c.receitaProdutos, 0)),
+        totalGasto: arredondar(clientes.reduce((s, c) => s + c.totalGasto, 0)),
         atendimentos: clientes.reduce((s, c) => s + c.concluidos, 0),
         faltas: clientes.reduce((s, c) => s + c.faltas, 0),
         cancelamentos: clientes.reduce((s, c) => s + c.cancelados, 0)
@@ -114,17 +173,13 @@ router.get("/pendentes", autenticar, exigirDono, async (req, res) => {
       .sort({ data: 1, hora: 1 })
       .lean();
 
-    res.json({
-      clientes: comSinal,
-      agendamentos,
-      total: agendamentos.length
-    });
+    res.json({ clientes: comSinal, agendamentos, total: agendamentos.length });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
 });
 
-// ---------- clientes com sinal (usado para marcar cartões) ----------
+// ---------- clientes com sinal (cartões do painel) ----------
 router.get("/sinal", autenticar, async (req, res) => {
   try {
     res.json(await listarClientesComSinal());
@@ -166,18 +221,19 @@ router.get("/:whatsapp/historico", autenticar, async (req, res) => {
     const cliente = await buscarFicha(numero);
 
     const { de, ate } = intervalo(req.query);
-    const filtro = { clienteWhatsapp: numero };
-    if (de || ate) {
-      filtro.data = {};
-      if (de) filtro.data.$gte = de;
-      if (ate) filtro.data.$lte = ate;
-    }
+    const filtro = { clienteWhatsapp: numero, ...filtroPorData(de, ate) };
 
-    const agendamentos = await Agendamento.find(filtro).sort({ data: -1, hora: -1 }).lean();
+    const [agendamentos, vendas] = await Promise.all([
+      Agendamento.find(filtro).sort({ data: -1, hora: -1 }).lean(),
+      Venda.find(filtro).sort({ data: -1, criadoEm: -1 }).lean()
+    ]);
 
     const concluidos = agendamentos.filter((a) => a.status === "concluido");
     const faltas = agendamentos.filter((a) => a.status === "nao_compareceu");
     const cancelados = agendamentos.filter((a) => a.status === "cancelado");
+
+    const gastoServicos = arredondar(concluidos.reduce((s, a) => s + a.servicoPreco, 0));
+    const gastoProdutos = arredondar(vendas.reduce((s, v) => s + v.total, 0));
 
     res.json({
       cliente,
@@ -187,13 +243,17 @@ router.get("/:whatsapp/historico", autenticar, async (req, res) => {
         concluidos: concluidos.length,
         faltas: faltas.length,
         cancelados: cancelados.length,
-        gastoTotal: Math.round(concluidos.reduce((s, a) => s + a.servicoPreco, 0) * 100) / 100,
+        gastoServicos,
+        gastoProdutos,
+        gastoTotal: arredondar(gastoServicos + gastoProdutos),
         ticketMedio: concluidos.length
-          ? Math.round((concluidos.reduce((s, a) => s + a.servicoPreco, 0) / concluidos.length) * 100) / 100
+          ? arredondar(gastoServicos / concluidos.length)
           : 0,
-        ultimoAtendimento: concluidos[0]?.data || null
+        ultimoAtendimento: concluidos[0]?.data || null,
+        compras: vendas.length
       },
-      agendamentos
+      agendamentos,
+      vendas
     });
   } catch (err) {
     res.status(500).json({ erro: err.message });
