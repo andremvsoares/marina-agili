@@ -112,7 +112,7 @@ router.get("/", autenticar, exigirDono, async (req, res) => {
 
     const numeros = [...mapa.keys()];
     const fichas = await Cliente.find({ whatsapp: { $in: numeros } })
-      .select("whatsapp nome sinalObrigatorio")
+      .select("whatsapp nome sinalObrigatorio dataNascimento")
       .lean();
 
     const porNumero = new Map(fichas.map((f) => [f.whatsapp, f]));
@@ -125,6 +125,7 @@ router.get("/", autenticar, exigirDono, async (req, res) => {
       return {
         ...c,
         nome: ficha.nome || c.nome,
+        dataNascimento: ficha.dataNascimento || "",
         totalGasto,
         ultimaVisita,
         sinalObrigatorio: ficha.sinalObrigatorio === true
@@ -217,6 +218,68 @@ router.post("/:whatsapp/credito", autenticar, exigirDono, async (req, res) => {
     if (!resultado.ok) return res.status(resultado.status).json({ erro: resultado.erro });
 
     res.status(201).json({ saldo: resultado.saldo, movimento: resultado.movimento });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// ---------- aniversariantes ----------
+router.get("/aniversariantes", autenticar, async (req, res) => {
+  try {
+    const todos = req.query.todos === "1";
+    const mes = /^\d{2}$/.test(req.query.mes || "")
+      ? req.query.mes
+      : String(new Date().getMonth() + 1).padStart(2, "0");
+
+    const clientes = await Cliente.find({ dataNascimento: { $nin: ["", null] } })
+      .select("nome whatsapp dataNascimento")
+      .lean();
+
+    const doMes = todos
+      ? clientes
+      : clientes.filter((c) => c.dataNascimento.slice(5, 7) === mes);
+
+    const lista = doMes
+      .map((c) => ({
+        whatsapp: c.whatsapp,
+        nome: c.nome,
+        dataNascimento: c.dataNascimento,
+        dia: Number(c.dataNascimento.slice(8, 10)),
+        mes: c.dataNascimento.slice(5, 7)
+      }))
+      .sort((a, b) => a.dia - b.dia || String(a.nome).localeCompare(String(b.nome)));
+
+    res.json({ mes, clientes: lista });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// ---------- editar ficha ----------
+router.patch("/:whatsapp", autenticar, exigirDono, async (req, res) => {
+  try {
+    const numero = normalizarWhatsapp(req.params.whatsapp);
+    const cliente = await Cliente.findOne({ whatsapp: numero });
+    if (!cliente) return res.status(404).json({ erro: "Cliente não encontrada" });
+
+    const { nome, dataNascimento, observacoes } = req.body;
+
+    if (nome !== undefined) cliente.nome = String(nome).trim().slice(0, 80);
+
+    if (dataNascimento !== undefined) {
+      if (dataNascimento === "") {
+        cliente.dataNascimento = "";
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(String(dataNascimento))) {
+        cliente.dataNascimento = String(dataNascimento);
+      } else {
+        return res.status(400).json({ erro: "Data de nascimento inválida" });
+      }
+    }
+
+    if (observacoes !== undefined) cliente.observacoes = String(observacoes).slice(0, 500);
+
+    await cliente.save();
+    res.json(cliente);
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }

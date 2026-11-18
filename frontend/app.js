@@ -46,6 +46,7 @@ function voltarInicial() {
   document.getElementById("input-whatsapp").value = "";
   document.getElementById("input-obs").value = "";
   document.getElementById("input-consentimento").checked = false;
+  document.getElementById("input-nascimento").value = "";
   document.getElementById("card-data").style.display = "none";
   document.getElementById("card-horarios").style.display = "none";
   document.getElementById("card-dados").style.display = "none";
@@ -174,7 +175,8 @@ async function confirmarAgendamento() {
         data: dataSelecionada,
         hora: horaSelecionada,
         observacoes: obs,
-        consentimento: true
+        consentimento: true,
+        dataNascimento: document.getElementById("input-nascimento").value || undefined
       })
     });
 

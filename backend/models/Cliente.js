@@ -5,6 +5,9 @@ const ClienteSchema = new mongoose.Schema({
   whatsapp: { type: String, required: true, trim: true, unique: true },
   observacoes: { type: String, default: "" },
 
+  // "YYYY-MM-DD" — usado para aniversariantes e para o presente na agenda.
+  dataNascimento: { type: String, default: "" },
+
   // ---------- histórico de comparecimento ----------
   // Usado para exigir sinal de quem já faltou sem avisar.
   noShows: { type: Number, default: 0 },

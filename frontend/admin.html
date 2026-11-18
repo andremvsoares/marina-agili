@@ -318,6 +318,14 @@
     .btn-whatsapp { background: #25D366; color: white; }
     .btn-falta { background: #E8B4B8; color: #7A2E36; }
 
+    .icone-presente {
+      display: inline-block;
+      margin-left: 6px;
+      font-size: 13px;
+      cursor: help;
+      vertical-align: middle;
+    }
+
     .tag-sinal {
       display: inline-block;
       margin-left: 8px;
@@ -1121,6 +1129,11 @@
 
         <div id="cli-resumo" class="cards-relatorio"></div>
 
+        <div class="card">
+          <h2>🎂 Aniversariantes do mês</h2>
+          <div id="cli-aniversariantes"></div>
+        </div>
+
         <div id="cli-pendencias"></div>
 
         <div class="card">
@@ -1325,6 +1338,33 @@
 
     const corDoServico = (id) => coresPorServico.get(String(id)) || "#8B5A3C";
 
+    // Aniversários: whatsapp -> "YYYY-MM-DD"
+    let nascimentos = new Map();
+
+    async function carregarNascimentos() {
+      try {
+        const resp = await fetch(`${API_URL}/api/clientes/aniversariantes?todos=1`, {
+          headers: authHeaders()
+        });
+        const dados = await resp.json();
+        nascimentos = new Map(
+          (dados.clientes || []).map((c) => [String(c.whatsapp), c.dataNascimento])
+        );
+      } catch {}
+    }
+
+    // Presente só quando o mês do aniversário é o mesmo do agendamento.
+    function presenteNoMes(whatsapp, data) {
+      const nascimento = nascimentos.get(String(whatsapp));
+      if (!nascimento || !data) return "";
+
+      if (nascimento.slice(5, 7) !== String(data).slice(5, 7)) return "";
+
+      const dia = nascimento.slice(8, 10);
+      const mes = nascimento.slice(5, 7);
+      return `<span class="icone-presente" title="Fez aniversário em ${dia}/${mes}">🎁</span>`;
+    }
+
     function authHeaders(extra = {}) {
       return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
     }
@@ -1438,6 +1478,7 @@
 
       montarAbas();
       await carregarCores();
+      await carregarNascimentos();
       carregarClientesComSinal();
       carregarCalendario();
       carregarAgenda();
@@ -1670,6 +1711,7 @@
                 <a href="#" onclick="abrirFichaCliente('${a.clienteWhatsapp}');return false;"
                    style="color:inherit;text-decoration:none;border-bottom:1px dotted #C4B5A0;">${a.clienteNome}</a>
                 ${clientesComSinal.has(a.clienteWhatsapp) ? '<span class="tag-sinal">⚠ sinal</span>' : ""}
+                ${presenteNoMes(a.clienteWhatsapp, a.data)}
                 <small>${a.servicoNome} · ${a.status}</small>
               </span>
               <span class="valor">R$ ${a.servicoPreco}</span>
@@ -1876,6 +1918,7 @@
               <span class="swatch" style="background:${corDoServico(a.servicoId)}"></span>
               ${a.clienteNome}
               ${clientesComSinal.has(a.clienteWhatsapp) ? '<span class="tag-sinal">⚠ pede sinal</span>' : ""}
+              ${presenteNoMes(a.clienteWhatsapp, a.data)}
             </h4>
             <div class="info">
               💅 ${a.servicoNome} — R$ ${a.servicoPreco}<br>
@@ -3645,6 +3688,7 @@ Até lá! ✨`;
         renderizarResumoClientes(dados.totais);
         renderizarPendencias(pendencias);
         renderizarTabelaClientes(dados.clientes);
+        carregarAniversariantes();
       } catch {
         container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
       }
@@ -3760,6 +3804,36 @@ Até lá! ✨`;
         </div>`;
     }
 
+    async function carregarAniversariantes() {
+      const container = document.getElementById("cli-aniversariantes");
+      container.innerHTML = '<p class="loading">Carregando...</p>';
+
+      try {
+        const resp = await fetch(`${API_URL}/api/clientes/aniversariantes`, { headers: authHeaders() });
+        const dados = await resp.json();
+
+        if (!dados.clientes || !dados.clientes.length) {
+          container.innerHTML = '<p class="loading">Nenhuma aniversariante neste mês.</p>';
+          return;
+        }
+
+        container.innerHTML = dados.clientes
+          .map(
+            (c) => `
+          <div class="usuario-linha">
+            <div class="dados">
+              🎁 ${c.nome}
+              <small>faz aniversário dia ${String(c.dia).padStart(2, "0")}/${c.mes}</small>
+            </div>
+            <button class="mini" onclick="abrirCliente('${c.whatsapp}')">ver ficha</button>
+          </div>`
+          )
+          .join("");
+      } catch {
+        container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
+      }
+    }
+
     // ============ FICHA DETALHADA DA CLIENTE ============
     let histCliente = { whatsapp: null, nome: "", ano: "", mes: "" };
 
@@ -3858,6 +3932,11 @@ Até lá! ✨`;
         abrirModal(`
           <h3>${c.nome || nome || "Cliente"}</h3>
           <div class="linha"><strong>WhatsApp:</strong> ${whatsapp}</div>
+          <div class="linha">
+            <strong>Aniversário:</strong>
+            ${c.dataNascimento ? `${c.dataNascimento.slice(8, 10)}/${c.dataNascimento.slice(5, 7)}` : "não informado"}
+            <button class="mini" style="margin-left:8px;" onclick="definirAniversario('${whatsapp}')">alterar</button>
+          </div>
 
           <div class="cards-relatorio" style="margin:14px 0;">
             <div class="card-rel"><div class="valor">${t.concluidos}</div><div class="rotulo">Atendimentos</div></div>
@@ -3913,6 +3992,28 @@ Até lá! ✨`;
     // Mantém os atalhos antigos (agenda, lista de agendamentos) apontando para a ficha nova.
     function abrirFichaCliente(whatsapp) {
       return abrirCliente(whatsapp);
+    }
+
+    async function definirAniversario(whatsapp) {
+      const atual = nascimentos.get(String(whatsapp)) || "";
+      const valor = prompt("Data de nascimento (AAAA-MM-DD):", atual);
+      if (valor === null) return;
+
+      const resp = await fetch(`${API_URL}/api/clientes/${whatsapp}`, {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ dataNascimento: valor.trim() })
+      });
+
+      if (!resp.ok) {
+        const erro = await resp.json().catch(() => ({}));
+        alert(erro.erro || "Erro ao salvar a data");
+        return;
+      }
+
+      await carregarNascimentos();
+      await renderHistoricoCliente();
+      carregarClientes();
     }
 
     async function adicionarCredito(whatsapp) {

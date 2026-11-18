@@ -245,7 +245,8 @@ app.post("/api/agendamentos", limiteAgendamento, async (req, res) => {
       data,
       hora,
       observacoes,
-      consentimento: req.body.consentimento === true
+      consentimento: req.body.consentimento === true,
+      dataNascimento: req.body.dataNascimento
     });
 
     if (!resultado.ok) {

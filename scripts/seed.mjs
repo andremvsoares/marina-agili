@@ -213,10 +213,16 @@ try {
       continue;
     }
 
+    const mesNascimento =
+      rnd() < 0.3
+        ? String(new Date().getMonth() + 1).padStart(2, "0")
+        : String(entre(1, 12)).padStart(2, "0");
+
     const doc = {
       nome: NOMES[i],
       whatsapp,
       observacoes: "",
+      dataNascimento: `${entre(1975, 2002)}-${mesNascimento}-${String(entre(1, 28)).padStart(2, "0")}`,
       noShows: 0,
       cancelamentosTardios: 0,
       ultimoProblemaEm: null,

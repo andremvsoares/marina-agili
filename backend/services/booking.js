@@ -32,6 +32,7 @@ export async function criarAgendamento({
   hora,
   observacoes,
   consentimento,
+  dataNascimento,
   simulado = false
 }) {
   if (!mongoose.Types.ObjectId.isValid(servicoId)) {
@@ -64,6 +65,14 @@ export async function criarAgendamento({
 
   // A ficha da cliente manda: quem já faltou sem avisar entra com sinal.
   const cliente = await obterOuCriarCliente(whatsappLimpo, nome);
+
+  if (dataNascimento && /^\d{4}-\d{2}-\d{2}$/.test(String(dataNascimento))) {
+    await Cliente.updateOne(
+      { _id: cliente._id, dataNascimento: { $in: ["", null] } },
+      { $set: { dataNascimento: String(dataNascimento) } }
+    );
+    cliente.dataNascimento = String(dataNascimento);
+  }
 
   // Modo simulado (teste do bot sem número real): valida tudo e devolve um
   // objeto falso, sem gravar nada no banco de produção.
