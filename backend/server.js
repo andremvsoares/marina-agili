@@ -37,7 +37,12 @@ app.disable("x-powered-by");
 app.use(helmet({ contentSecurityPolicy: false }));
 
 const ORIGENS_PERMITIDAS = (
-  process.env.CORS_ORIGINS || "https://marina-agili.vercel.app"
+  process.env.CORS_ORIGINS ||
+  [
+    "https://marina-agili.vercel.app",
+    "https://marinagili.app.br",
+    "https://www.marinagili.app.br"
+  ].join(",")
 )
   .split(",")
   .map((o) => o.trim())
