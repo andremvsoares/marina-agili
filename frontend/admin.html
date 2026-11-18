@@ -78,7 +78,46 @@
     }
 
     /* botão de menu e fundo escurecido: só aparecem no celular */
-    .btn-menu { display: none; }
+    .btn-menu {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 65;
+      min-height: 48px;
+      padding: 0 18px;
+      border: 1px solid #E0D2C0;
+      border-radius: 14px;
+      background: #FFF9F3;
+      color: #8B5A3C;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(139, 90, 60, 0.16);
+      touch-action: manipulation;
+    }
+    .btn-menu:active { background: #F5EDE3; }
+    .btn-menu .icone { font-size: 22px; line-height: 1; }
+
+    .btn-fechar-menu {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border: 1px solid #E0D2C0;
+      border-radius: 12px;
+      background: #FFF9F3;
+      color: #8B5A3C;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
     .menu-overlay { display: none; }
 
     .btn-sair {
@@ -153,7 +192,8 @@
 
       .sidebar.aberto { transform: translateX(0); }
 
-      .sidebar .marca { display: block; }
+      .sidebar .marca { display: block; position: relative; padding-right: 46px; }
+      .btn-fechar-menu { display: flex; position: absolute; top: -4px; right: 0; }
 
       .sidebar nav {
         flex: 1;
@@ -179,10 +219,17 @@
       }
       .lado-rodape .quem { display: block; }
 
-      .btn-menu { display: flex; }
+      .btn-menu {
+        display: flex;
+        min-height: 52px;
+        padding: 0 20px;
+        font-size: 17px;
+      }
+      .btn-menu .icone { font-size: 24px; }
+
       .menu-overlay.aberto { display: block; }
 
-      .admin-main { padding: 62px 14px 24px; }
+      .admin-main { padding: 76px 14px 24px; }
 
       .card { padding: 16px; border-radius: 16px; }
       .card h2 { font-size: 15px; }
@@ -860,7 +907,9 @@
     </div>
 
     <div id="tela-painel" class="tela">
-      <button id="btn-menu" class="btn-menu" onclick="alternarMenu()" aria-label="Abrir menu">☰</button>
+      <button id="btn-menu" class="btn-menu" onclick="alternarMenu()" aria-label="Abrir menu">
+        <span class="icone" aria-hidden="true">☰</span> Menu
+      </button>
       <div id="menu-overlay" class="menu-overlay" onclick="fecharMenu()"></div>
 
       <div class="admin-shell">
@@ -868,6 +917,7 @@
           <div class="marca">
             Marina Aglli
             <small>painel de gestão</small>
+            <button class="btn-fechar-menu" onclick="fecharMenu()" aria-label="Fechar menu">×</button>
           </div>
 
           <nav id="tabs"></nav>
