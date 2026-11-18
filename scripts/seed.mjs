@@ -601,7 +601,7 @@ try {
 
   // ==================== CRÉDITOS ====================
   const creditosDemo = [
-    [clientes[2], 15, "Troco do atendimento"],
+    [clientes[2], 45, "Troco do atendimento"],
     [clientes[7], 30, "Crédito manual"],
     [clientes[11], 20, "Troco do atendimento"]
   ];
@@ -628,6 +628,63 @@ try {
     creditosCriados++;
   }
 
+  // ---------- um atendimento pago com crédito ----------
+  const clienteComCredito = clientes[2];
+  const agCredito = await db.collection("agendamentos").findOne({
+    status: "concluido",
+    clienteWhatsapp: clienteComCredito.whatsapp,
+    data: { $gte: somarDias(hoje, -25) }
+  });
+
+  if (agCredito) {
+    const valorCredito = Math.min(20, Number(agCredito.servicoPreco));
+    const restante = Math.round((Number(agCredito.servicoPreco) - valorCredito) * 100) / 100;
+
+    await db.collection("agendamentos").updateOne(
+      { _id: agCredito._id },
+      {
+        $set: {
+          pagamentos: [
+            { forma: "credito_cliente", valor: valorCredito },
+            { forma: "dinheiro", valor: restante }
+          ],
+          pagoEm: new Date(`${agCredito.data}T${agCredito.hora}:00-03:00`)
+        }
+      }
+    );
+
+    await db.collection("movimentocreditos").insertOne({
+      clienteWhatsapp: clienteComCredito.whatsapp,
+      valor: -valorCredito,
+      tipo: "uso",
+      motivo: "Pagamento de atendimento",
+      data: agCredito.data,
+      agendamentoId: agCredito._id,
+      criadoEm: new Date(),
+      _demo: true
+    });
+  }
+
+  // ---------- alguns concluídos sem pagamento (para testar o botão) ----------
+  const concluidosSemPagamento = await db
+    .collection("agendamentos")
+    .find({
+      status: "concluido",
+      clienteWhatsapp: new RegExp("^" + PREFIXO_TEL),
+      data: { $gte: somarDias(hoje, -20) }
+    })
+    .limit(8)
+    .toArray();
+
+  let semPagamento = 0;
+  for (const ag of concluidosSemPagamento.slice(0, 4)) {
+    await db.collection("agendamentos").updateOne(
+      { _id: ag._id },
+      { $set: { pagamentos: [], pagoEm: null } }
+    );
+    semPagamento++;
+  }
+
   // ==================== RESUMO ====================
   const totalAg = agendamentos.length;
   const porStatus = {
@@ -646,7 +703,8 @@ try {
   console.log("   1 usuário de equipe: seed.funcionaria / demo1234");
   console.log("   2 dias bloqueados");
   console.log(`   ${fixasCriadas} despesas fixas | ${cartoesCriados.length} cartões | ${comprasCriadas} compras parceladas | ${avulsasCriadas} avulsas`);
-  console.log(`   ${creditosCriados} clientes com crédito`);
+  console.log(`   ${creditosCriados} clientes com crédito (1 atendimento pago com crédito)`);
+  console.log(`   ${semPagamento} atendimentos concluídos sem pagamento registrado`);
   console.log("\nPara apagar: node scripts/seed.mjs --limpar");
 } catch (err) {
   console.error("❌ Erro:", err.message);
