@@ -82,7 +82,7 @@ router.get("/mes", autenticar, async (req, res) => {
         data: { $gte: inicio, $lte: fim },
         status: { $in: ["confirmado", "concluido"] }
       })
-        .select("data hora -_id")
+        .select("data hora servicoId -_id")
         .lean(),
       Bloqueio.find({ data: { $gte: inicio, $lte: fim } })
         .select("data hora -_id")
@@ -90,9 +90,14 @@ router.get("/mes", autenticar, async (req, res) => {
     ]);
 
     const ocupadosPorDia = new Map();
+    const servicosPorDia = new Map();
+
     for (const a of agendamentos) {
       if (!ocupadosPorDia.has(a.data)) ocupadosPorDia.set(a.data, new Set());
       ocupadosPorDia.get(a.data).add(a.hora);
+
+      if (!servicosPorDia.has(a.data)) servicosPorDia.set(a.data, new Set());
+      servicosPorDia.get(a.data).add(String(a.servicoId));
     }
 
     const bloqueioDiaInteiro = new Set();
@@ -135,6 +140,7 @@ router.get("/mes", autenticar, async (req, res) => {
         total: base.length,
         disponiveis,
         ocupados: ocupados.size,
+        servicos: [...(servicosPorDia.get(data) || [])],
         fechado: base.length === 0,
         bloqueado: fechadoPeloDia,
         passado: data < hoje,

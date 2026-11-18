@@ -16,10 +16,8 @@
     /* ---------- layout de web (desktop/tablet) ---------- */
     .admin-shell {
       display: grid;
-      grid-template-columns: 250px minmax(0, 1fr);
+      grid-template-columns: 260px minmax(0, 1fr);
       min-height: 100vh;
-      max-width: 1500px;
-      margin: 0 auto;
       background: #FDFAF6;
     }
 
@@ -311,6 +309,85 @@
       padding-top: 18px;
     }
 
+    /* ---------- cores dos serviços ---------- */
+    .paleta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .cor-opcao {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      padding: 0;
+    }
+    .cor-opcao.sel { border-color: #4A3B30; }
+    .input-cor {
+      width: 100%;
+      height: 38px;
+      border: 1px solid #EDE4D8;
+      border-radius: 10px;
+      background: white;
+      padding: 4px;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+
+    .ponto {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .pontos { display: flex; gap: 3px; margin-top: auto; }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    /* ---------- lista de agendados do dia ---------- */
+    .lista-agendados {
+      background: #FAF7F2;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+    .lista-agendados h3 {
+      font-size: 12px;
+      color: #8B6F5C;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .agendado {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid #F0E8DC;
+      font-size: 13px;
+      color: #4A3B30;
+    }
+    .agendado:last-child { border-bottom: none; }
+    .agendado .barra {
+      width: 4px;
+      height: 30px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .agendado .hora { font-weight: 700; color: #8B5A3C; min-width: 46px; }
+    .agendado .quem { flex: 1; }
+    .agendado .quem small { display: block; color: #8B6F5C; font-size: 11px; }
+    .agendado .valor { font-size: 12px; color: #8B6F5C; white-space: nowrap; }
+
     /* ---------- agenda ---------- */
     .agenda-nav {
       display: flex;
@@ -579,6 +656,20 @@
           <input type="text" id="novo-nome" class="input-text" placeholder="Nome do serviço">
           <input type="number" id="novo-preco" class="input-text" placeholder="Preço (R$)">
           <input type="number" id="nova-duracao" class="input-text" placeholder="Duração (minutos)" value="60">
+
+          <label style="font-size:12px;color:#8B6F5C;display:block;margin:10px 0 6px;">Cor na agenda</label>
+          <div class="paleta" id="paleta-servico">
+            <button type="button" class="cor-opcao" style="background:#8B5A3C" onclick="escolherCor('#8B5A3C', this)"></button>
+            <button type="button" class="cor-opcao" style="background:#C97B63" onclick="escolherCor('#C97B63', this)"></button>
+            <button type="button" class="cor-opcao" style="background:#D4A373" onclick="escolherCor('#D4A373', this)"></button>
+            <button type="button" class="cor-opcao" style="background:#8FA98F" onclick="escolherCor('#8FA98F', this)"></button>
+            <button type="button" class="cor-opcao" style="background:#7C9EB2" onclick="escolherCor('#7C9EB2', this)"></button>
+            <button type="button" class="cor-opcao" style="background:#9B8AA6" onclick="escolherCor('#9B8AA6', this)"></button>
+            <button type="button" class="cor-opcao" style="background:#C48B9F" onclick="escolherCor('#C48B9F', this)"></button>
+            <button type="button" class="cor-opcao" style="background:#B08968" onclick="escolherCor('#B08968', this)"></button>
+          </div>
+          <input type="color" id="nova-cor" class="input-cor" value="#8B5A3C">
+
           <button class="btn-primary" onclick="criarServico()">+ Adicionar</button>
         </div>
         <div class="card">
@@ -714,6 +805,19 @@
     let clientesComSinal = new Set();
     let configAtual = null;
 
+    // Cor de cada serviço, para pintar agenda e listas.
+    let coresPorServico = new Map();
+
+    async function carregarCores() {
+      try {
+        const resp = await fetch(`${API_URL}/api/servicos`);
+        const servicos = await resp.json();
+        coresPorServico = new Map(servicos.map((s) => [String(s._id), s.cor || "#8B5A3C"]));
+      } catch {}
+    }
+
+    const corDoServico = (id) => coresPorServico.get(String(id)) || "#8B5A3C";
+
     function authHeaders(extra = {}) {
       return token ? { ...extra, Authorization: `Bearer ${token}` } : { ...extra };
     }
@@ -800,7 +904,7 @@
       if (nome === "agendamentos") carregarAgendamentos();
     }
 
-    function mostrarPainel() {
+    async function mostrarPainel() {
       document.getElementById("tela-login").classList.remove("ativa");
       document.getElementById("tela-painel").classList.add("ativa");
 
@@ -808,6 +912,7 @@
         nomeUsuario + (papel === "dono" ? " · administradora" : " · equipe");
 
       montarAbas();
+      await carregarCores();
       carregarClientesComSinal();
       carregarCalendario();
       carregarAgenda();
@@ -874,10 +979,16 @@
           }
         }
 
+        const pontos = (d.servicos || [])
+          .slice(0, 5)
+          .map((id) => `<span class="ponto" style="background:${corDoServico(id)}"></span>`)
+          .join("");
+
         const acao = d.fechado ? "" : `onclick="selecionarDia('${d.data}')"`;
 
         html += `<button class="${classes.join(" ")}" ${acao}>
             <span class="numero">${d.dia}</span>${etiqueta}
+            ${pontos ? `<span class="pontos">${pontos}</span>` : ""}
           </button>`;
       }
 
@@ -978,7 +1089,7 @@
             ? '<span class="tag-sinal">⚠ sinal</span>'
             : "";
           return `
-            <div class="slot">
+            <div class="slot" style="border-left-color:${corDoServico(ag.servicoId)}">
               <span class="hora">${h.hora}</span>
               <span class="quem">
                 <a href="#" onclick="abrirFichaCliente('${ag.clienteWhatsapp}');return false;"
@@ -1012,11 +1123,40 @@
         .filter((a) => a.status !== "cancelado")
         .reduce((s, a) => s + a.servicoPreco, 0);
 
+      const ordenados = [...dia.agendamentos]
+        .filter((a) => a.status !== "cancelado")
+        .sort((a, b) => a.hora.localeCompare(b.hora));
+
+      const listaHtml = ordenados.length
+        ? `
+        <div class="lista-agendados">
+          <h3>Quem está marcado — ${ordenados.length}</h3>
+          ${ordenados
+            .map(
+              (a) => `
+            <div class="agendado">
+              <span class="barra" style="background:${corDoServico(a.servicoId)}"></span>
+              <span class="hora">${a.hora}</span>
+              <span class="quem">
+                <a href="#" onclick="abrirFichaCliente('${a.clienteWhatsapp}');return false;"
+                   style="color:inherit;text-decoration:none;border-bottom:1px dotted #C4B5A0;">${a.clienteNome}</a>
+                ${clientesComSinal.has(a.clienteWhatsapp) ? '<span class="tag-sinal">⚠ sinal</span>' : ""}
+                <small>${a.servicoNome} · ${a.status}</small>
+              </span>
+              <span class="valor">R$ ${a.servicoPreco}</span>
+              ${montarAcoesAgenda(a)}
+            </div>`
+            )
+            .join("")}
+        </div>`
+        : "";
+
       container.innerHTML = `
         <div class="resumo-box">
           <div class="resumo-item"><div class="num">${total}</div><div class="lbl">Atendimentos</div></div>
           <div class="resumo-item"><div class="num">R$ ${receita}</div><div class="lbl">Previsto</div></div>
         </div>
+        ${listaHtml}
         ${bloqueadoDia ? '<p style="color:#C0392B;font-size:13px;margin-bottom:10px;">⚠ Dia inteiro bloqueado</p>' : ""}
         <div class="agenda-titulo">Horários</div>
         ${linhas.join("")}
@@ -1112,8 +1252,9 @@
         container.innerHTML = ags
           .map(
             (a) => `
-          <div class="agendamento-card ${a.status}">
+          <div class="agendamento-card ${a.status}" style="border-left-color:${corDoServico(a.servicoId)}">
             <h4>
+              <span class="swatch" style="background:${corDoServico(a.servicoId)}"></span>
               ${a.clienteNome}
               ${clientesComSinal.has(a.clienteWhatsapp) ? '<span class="tag-sinal">⚠ pede sinal</span>' : ""}
             </h4>
@@ -1218,15 +1359,20 @@ Até lá! ✨`;
         const resp = await fetch(`${API_URL}/api/servicos`);
         const servicos = await resp.json();
 
+        coresPorServico = new Map(servicos.map((s) => [String(s._id), s.cor || "#8B5A3C"]));
+
         if (!servicos.length) { container.innerHTML = '<p class="loading">Nenhum serviço.</p>'; return; }
 
         container.innerHTML = servicos
           .map(
             (s) => `
-          <div class="agendamento-card">
-            <h4>${s.nome}</h4>
+          <div class="agendamento-card" style="border-left-color:${s.cor || "#8B5A3C"}">
+            <h4><span class="swatch" style="background:${s.cor || "#8B5A3C"}"></span>${s.nome}</h4>
             <div class="info">💰 R$ ${s.preco} · ⏱ ${s.duracao || 60} min</div>
             <div class="acoes">
+              <input type="color" class="input-cor" style="width:48px;height:32px;margin:0;padding:2px;"
+                     value="${s.cor || "#8B5A3C"}" title="Cor do serviço"
+                     onchange="mudarCorServico('${s._id}', this.value)">
               <button class="btn-acao btn-cancelar" onclick="excluirServico('${s._id}', '${s.nome}')">🗑 Desativar</button>
             </div>
           </div>`
@@ -1237,23 +1383,47 @@ Até lá! ✨`;
       }
     }
 
+    function escolherCor(cor, el) {
+      document.getElementById("nova-cor").value = cor;
+      document.querySelectorAll("#paleta-servico .cor-opcao").forEach((b) => b.classList.remove("sel"));
+      if (el) el.classList.add("sel");
+    }
+
+    async function mudarCorServico(id, cor) {
+      const resp = await fetch(`${API_URL}/api/servicos/${id}`, {
+        method: "PUT",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ cor })
+      });
+
+      if (!resp.ok) { alert("Erro ao mudar a cor."); return; }
+
+      await carregarCores();
+      carregarServicosAdmin();
+      carregarCalendario();
+      carregarAgenda();
+    }
+
     async function criarServico() {
       const nome = document.getElementById("novo-nome").value.trim();
       const preco = parseFloat(document.getElementById("novo-preco").value);
       const duracao = parseInt(document.getElementById("nova-duracao").value) || 60;
+      const cor = document.getElementById("nova-cor").value;
 
       if (!nome || !preco) { alert("Preencha nome e preço"); return; }
 
       const resp = await fetch(`${API_URL}/api/servicos`, {
         method: "POST",
         headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ nome, preco, duracao })
+        body: JSON.stringify({ nome, preco, duracao, cor })
       });
 
       if (resp.ok) {
         document.getElementById("novo-nome").value = "";
         document.getElementById("novo-preco").value = "";
         document.getElementById("nova-duracao").value = "60";
+        escolherCor("#8B5A3C", document.querySelector("#paleta-servico .cor-opcao"));
+        await carregarCores();
         carregarServicosAdmin();
       } else {
         alert("Erro ao criar serviço.");
@@ -1907,6 +2077,7 @@ Até lá! ✨`;
               .slice(0, 8)
               .map(
                 (a) => `<div class="linha" style="font-size:12px;border-bottom:1px solid #F5EFE6;padding:6px 0;">
+                  <span class="ponto" style="background:${corDoServico(a.servicoId)};margin-right:6px;"></span>
                   ${a.data.split("-").reverse().join("/")} ${a.hora} · ${a.servicoNome} ·
                   <span style="color:#8B6F5C;">${a.status}</span>
                 </div>`

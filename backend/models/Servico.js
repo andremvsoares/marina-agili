@@ -6,6 +6,9 @@ const ServicoSchema = new mongoose.Schema({
   duracao: { type: Number, default: 60 }, // em minutos
   ativo: { type: Boolean, default: true },
 
+  // Cor usada para identificar o serviço na agenda e nas listas.
+  cor: { type: String, default: "#8B5A3C" },
+
   // Ficha técnica: quanto de cada produto é usado por atendimento.
   // Base para calcular o custo real do serviço.
   insumos: [

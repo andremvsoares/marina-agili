@@ -114,6 +114,7 @@ mongoose
 // ==================== VALIDAÇÃO ====================
 const RE_DATA = /^\d{4}-\d{2}-\d{2}$/;
 const RE_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+const RE_COR = /^#[0-9a-fA-F]{6}$/;
 const RE_WHATSAPP = /^\d{10,13}$/;
 const MAX_NOME = 80;
 const MAX_OBS = 300;
@@ -155,14 +156,17 @@ app.get("/api/servicos", async (req, res) => {
 
 app.post("/api/servicos", autenticar, exigirDono, async (req, res) => {
   try {
-    const { nome, preco, duracao } = req.body;
+    const { nome, preco, duracao, cor } = req.body;
     if (!nome || preco === undefined) {
       return res.status(400).json({ erro: "Nome e preço são obrigatórios" });
     }
     if (typeof preco !== "number" || preco < 0) {
       return res.status(400).json({ erro: "Preço inválido" });
     }
-    const servico = await Servico.create({ nome, preco, duracao });
+    if (cor !== undefined && !RE_COR.test(String(cor))) {
+      return res.status(400).json({ erro: "Cor inválida" });
+    }
+    const servico = await Servico.create({ nome, preco, duracao, cor });
     res.status(201).json(servico);
   } catch (err) {
     res.status(500).json({ erro: err.message });
@@ -171,7 +175,26 @@ app.post("/api/servicos", autenticar, exigirDono, async (req, res) => {
 
 app.put("/api/servicos/:id", autenticar, exigirDono, async (req, res) => {
   try {
-    const servico = await Servico.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { nome, preco, duracao, cor, ativo } = req.body;
+    const dados = {};
+
+    if (nome !== undefined) dados.nome = String(nome).trim();
+    if (preco !== undefined) {
+      if (typeof preco !== "number" || preco < 0) {
+        return res.status(400).json({ erro: "Preço inválido" });
+      }
+      dados.preco = preco;
+    }
+    if (duracao !== undefined) dados.duracao = Number(duracao) || 60;
+    if (ativo !== undefined) dados.ativo = Boolean(ativo);
+    if (cor !== undefined) {
+      if (!RE_COR.test(String(cor))) return res.status(400).json({ erro: "Cor inválida" });
+      dados.cor = cor;
+    }
+
+    const servico = await Servico.findByIdAndUpdate(req.params.id, dados, { new: true });
+    if (!servico) return res.status(404).json({ erro: "Serviço não encontrado" });
+
     res.json(servico);
   } catch (err) {
     res.status(500).json({ erro: err.message });
