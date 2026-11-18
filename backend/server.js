@@ -527,9 +527,12 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 
-  // Lembrete de véspera: só faz sentido com o bot configurado.
-  if (botConfigurado()) {
+  // Lembrete de véspera: só roda quando ativado de propósito.
+  // Protege contra disparo acidental quando o bot ainda está em testes.
+  if (process.env.LEMBRETES_ATIVOS === "1" && botConfigurado()) {
     iniciarLembretes();
     console.log("🔔 Lembretes ativos (checagem a cada 10 min)");
+  } else {
+    console.log("🔕 Lembretes desligados (defina LEMBRETES_ATIVOS=1 para ativar)");
   }
 });

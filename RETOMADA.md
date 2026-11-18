@@ -89,7 +89,10 @@ Código pronto em `backend/services/lembretes.js`, validado com 10 testes:
 - atendimento **antes das 14h** → lembrete na **véspera às 18h**
 - atendimento **das 14h em diante** → lembrete **no mesmo dia às 8h**
 
-Roda a cada 10 minutos quando o bot está configurado e marca `lembreteEnviadoEm` para não repetir.
+Roda a cada 10 minutos **quando ativado** e marca `lembreteEnviadoEm` para não repetir.
+
+**Para ativar:** variável `LEMBRETES_ATIVOS=1` na Render (junto com o token válido). Sem ela,
+o agendador fica desligado de propósito — evita disparo acidental durante os testes.
 
 **Falta:** a mensagem é iniciada pela empresa, então a Meta só entrega dentro de 24h após a
 última mensagem da cliente. Para funcionar sempre, criar o **template de utilidade** na Meta e
