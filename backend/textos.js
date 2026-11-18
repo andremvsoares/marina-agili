@@ -13,7 +13,7 @@
 export const TEXTOS = {
   // ---------- menu ----------
   saudacao: (primeiroNome) =>
-    `Oi${primeiroNome ? ", " + primeiroNome : ""}! 👋 Aqui é o atendimento da *Marina Aglli Clinic Beauty*.\n\n` +
+    `Oi${primeiroNome ? ", " + primeiroNome : ""}! 👋 Aqui é o atendimento da *Marina Agili Clinic Beauty*.\n\n` +
     `Posso cuidar do seu agendamento agora mesmo. O que você prefere?`,
 
   botoesMenu: {
@@ -83,7 +83,7 @@ export const TEXTOS = {
     `*${servicoNome}*\n` +
     `📅 ${dataFormatada} às ${hora}\n` +
     `💰 R$ ${preco}\n\n` +
-    `Te espero lá na Marina Aglli Clinic Beauty. Se precisar remarcar, é só chamar aqui. 💛`,
+    `Te espero lá na Marina Agili Clinic Beauty. Se precisar remarcar, é só chamar aqui. 💛`,
 
   erroAoReservar: "Não consegui reservar esse horário. Vamos tentar de novo?",
 

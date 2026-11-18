@@ -1,4 +1,4 @@
-# Regras do projeto — Marina Aglli
+# Regras do projeto — Marina Agili
 
 > Arquivo de memória do projeto. Deve ir para o repositório (`marina-agili`) junto com o código.
 
@@ -96,7 +96,7 @@ No modo simulado nada é enviado e **nada é gravado no banco**.
 - [x] Segredos rotacionados (`JWT_SECRET`, `ADMIN_PASS`, usuário do Mongo)
 - [x] Índice único em `slot` (site e bot não reservam o mesmo horário)
 - [x] Número real do WhatsApp em `frontend/app.js` (5519998985805)
-- [x] `manifest.json` e `sw.js` rebatizados de "Studio Belle" para "Marina Aglli"
+- [x] `manifest.json` e `sw.js` rebatizados de "Studio Belle" para "Marina Agili"
 - [x] Backup diário criptografado no GitHub Actions (90 dias) + `restore.mjs` testado
 - [x] Monitor da API a cada 15 min (e-mail em caso de falha)
 - [x] Política de privacidade + consentimento gravado no agendamento
@@ -113,6 +113,6 @@ No modo simulado nada é enviado e **nada é gravado no banco**.
 
 ### Em aberto
 - [ ] Render free (dorme após 15 min) → plano pago
-- [ ] Domínio próprio (`marinaglli.com.br` está livre)
+- [ ] Domínio próprio (`marinagili.com.br` está livre)
 - [ ] Número de teste da Meta → trocar do modo simulado para o real
 - [ ] Onboarding no Gupshup (só com autorização explícita do André)

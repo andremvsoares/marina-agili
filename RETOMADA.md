@@ -1,4 +1,4 @@
-# Retomada do projeto — Marina Aglli
+# Retomada do projeto — Marina Agili
 
 > **Leia este arquivo primeiro.** Ele existe para qualquer sessão nova (minha ou de outro dev)
 > retomar o trabalho sem depender de memória da conversa anterior.
@@ -67,7 +67,7 @@ monitor da API a cada 15 min, segredos rotacionados, API fechada por token, rate
 | 2 | **Lembrete D-1** (template de utilidade na Meta) | bot ativo + template aprovado |
 | 3 | **Sinal de 20% com Pix/cartão** (Mercado Pago) | Marina confirmar conta MP |
 | 4 | **Onboarding Gupshup (coexistence)** no número dela | autorização explícita + janela tranquila + backup do app |
-| 5 | Domínio próprio (`marinaglli.com.br` está livre) | comprar no Registro.br |
+| 5 | Domínio próprio (`marinagili.com.br` está livre) | comprar no Registro.br |
 | 6 | Render pago (US$ 7/mês) — hoje dorme e atrasa 1 min | decisão de custo |
 | 7 | Política de privacidade citar data de nascimento | edição rápida |
 

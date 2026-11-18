@@ -145,7 +145,7 @@ function validarCriacaoAgendamento(body) {
 // ==================== ROTAS ====================
 
 app.get("/", (req, res) => {
-  res.json({ ok: true, mensagem: "API Marina Aglli funcionando ✨" });
+  res.json({ ok: true, mensagem: "API Marina Agili funcionando ✨" });
 });
 
 // ---------- SERVIÇOS ----------

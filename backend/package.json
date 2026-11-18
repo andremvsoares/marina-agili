@@ -1,7 +1,7 @@
 {
   "name": "marina-aglli-backend",
   "version": "1.0.0",
-  "description": "Backend do app Marina Aglli Clinic Beauty",
+  "description": "Backend do app Marina Agili Clinic Beauty",
   "main": "server.js",
   "type": "module",
   "scripts": {

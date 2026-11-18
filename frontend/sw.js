@@ -1,6 +1,6 @@
 // Cache versionado: sempre que o app mudar, mude o número aqui.
 // Ao ativar, as versões antigas são apagadas (o app deixa de ficar preso no cache).
-const CACHE_NAME = "marina-aglli-v2";
+const CACHE_NAME = "marina-agili-v3";
 
 const ARQUIVOS = [
   "./index.html",

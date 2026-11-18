@@ -13,7 +13,7 @@ export const HORARIOS_PADRAO = {
 };
 
 const ConfiguracaoSchema = new mongoose.Schema({
-  nomeNegocio: { type: String, default: "Marina Aglli Clinic Beauty" },
+  nomeNegocio: { type: String, default: "Marina Agili Clinic Beauty" },
 
   horariosPorDia: {
     type: Object,
