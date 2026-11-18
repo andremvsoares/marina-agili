@@ -36,6 +36,9 @@ const AgendamentoSchema = new mongoose.Schema({
   compareceuEm: { type: Date, default: null },
   remarcadoEm: { type: Date, default: null },
 
+  // Quando o lembrete saiu (evita mandar duas vezes).
+  lembreteEnviadoEm: { type: Date, default: null },
+
   // Como foi pago. Mais de um item = pagamento mesclado.
   pagamentos: [
     {

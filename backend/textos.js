@@ -87,6 +87,22 @@ export const TEXTOS = {
 
   erroAoReservar: "Não consegui reservar esse horário. Vamos tentar de novo?",
 
+  // ---------- lembrete ----------
+  // ATENÇÃO: mensagem iniciada pela empresa. A Meta só entrega dentro de 24h
+  // depois da última mensagem da cliente. Fora disso, precisa de TEMPLATE
+  // aprovado (ver WHATSAPP_TEMPLATE_LEMBRETE no RETOMADA.md).
+  lembrete: ({ clienteNome, servicoNome, data, hora }) => {
+    const [ano, mes, dia] = String(data).split("-");
+
+    return (
+      `Oi, ${String(clienteNome).split(" ")[0]}! 💛\n\n` +
+      `Passando para lembrar do seu horário amanhã:\n\n` +
+      `*${servicoNome}*\n` +
+      `📅 ${dia}/${mes} às ${hora}\n\n` +
+      `Se precisar remarcar ou cancelar, é só responder aqui que eu resolvo. 😊`
+    );
+  },
+
   // ---------- saídas ----------
   cancelou: "Sem problema! Se quiser agendar depois, é só mandar *oi* por aqui. 💛",
 

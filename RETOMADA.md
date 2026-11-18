@@ -82,6 +82,20 @@ corretamente. O código não é o problema.
 brasileiro real. Não há chip novo disponível → o caminho é o número da Marina (coexistência via
 Gupshup), que exige autorização dela.
 
+## Lembrete D-1 (implementado em 18/11)
+
+Código pronto em `backend/services/lembretes.js`, validado com 10 testes:
+
+- atendimento **antes das 14h** → lembrete na **véspera às 18h**
+- atendimento **das 14h em diante** → lembrete **no mesmo dia às 8h**
+
+Roda a cada 10 minutos quando o bot está configurado e marca `lembreteEnviadoEm` para não repetir.
+
+**Falta:** a mensagem é iniciada pela empresa, então a Meta só entrega dentro de 24h após a
+última mensagem da cliente. Para funcionar sempre, criar o **template de utilidade** na Meta e
+definir `WHATSAPP_TEMPLATE_LEMBRETE` na Render. O texto sugerido está em `backend/textos.js`
+(`TEXTOS.lembrete`) — serve de base para o corpo do template.
+
 ## Pendências (na ordem que faz sentido)
 
 | # | O que falta | Depende de |
@@ -89,8 +103,7 @@ Gupshup), que exige autorização dela.
 | 1 | **Comprar `marinagili.com.br`** (~R$ 40/ano, CNPJ do MEI) e apontar na Vercel | André (sem a Marina) |
 | 2 | **Verificação da empresa na Meta** (CNPJ do MEI, cartão CNPJ) | Marina autorizar + código no telefone |
 | 3 | **Bot com número brasileiro real** (Gupshup coexistence) | autorização da Marina + janela tranquila + backup do app |
-| 4 | Lembrete D-1 (template de utilidade na Meta) | bot ativo |
-| 5 | Sinal de 20% com Pix/cartão (Mercado Pago) | conta MP da Marina |
+| 4 | Lembrete D-1 (template de utilidade na Meta) | bot ativo || 5 | Sinal de 20% com Pix/cartão (Mercado Pago) | conta MP da Marina |
 | 6 | Render pago (US$ 7/mês) — hoje dorme e atrasa 1 min | decisão de custo |
 | 7 | Política de privacidade citar data de nascimento | edição rápida (André) |
 

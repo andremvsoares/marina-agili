@@ -25,6 +25,8 @@ import {
 import { criarAgendamento, horariosDisponiveis } from "./services/booking.js";
 import { validarAgendamento } from "./services/agenda.js";
 import { registrarCredito, saldoCredito } from "./services/creditos.js";
+import { iniciarLembretes } from "./services/lembretes.js";
+import { botConfigurado } from "./services/whatsapp.js";
 
 dotenv.config();
 
@@ -524,4 +526,10 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
+
+  // Lembrete de véspera: só faz sentido com o bot configurado.
+  if (botConfigurado()) {
+    iniciarLembretes();
+    console.log("🔔 Lembretes ativos (checagem a cada 10 min)");
+  }
 });
