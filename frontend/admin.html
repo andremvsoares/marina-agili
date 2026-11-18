@@ -772,6 +772,34 @@
         <div id="rel-conteudo"></div>
       </div>
 
+      <!-- ================= CLIENTES ================= -->
+      <div id="tab-clientes" class="tab-content" style="display:none;">
+        <div class="card">
+          <h2>Clientes</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+            <input type="date" id="cli-de" class="input-data" onchange="carregarClientes()">
+            <span style="color:#A89880;">até</span>
+            <input type="date" id="cli-ate" class="input-data" onchange="carregarClientes()">
+            <input type="text" id="cli-busca" class="input-text" placeholder="Buscar por nome ou WhatsApp"
+                   style="max-width:240px;margin:0;" oninput="carregarClientes()">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn-secundario" onclick="filtroClientes('ano')">Este ano</button>
+            <button class="btn-secundario" onclick="filtroClientes('mes')">Este mês</button>
+            <button class="btn-secundario" onclick="filtroClientes('tudo')">Tudo</button>
+          </div>
+        </div>
+
+        <div id="cli-resumo" class="cards-relatorio"></div>
+
+        <div id="cli-pendencias"></div>
+
+        <div class="card">
+          <h2>Quem mais movimenta</h2>
+          <div id="cli-tabela"></div>
+        </div>
+      </div>
+
       <!-- ================= RESUMO ================= -->
       <div id="tab-resumo" class="tab-content" style="display:none;">
         <div class="resumo-box">
@@ -869,6 +897,7 @@
       { id: "agenda", rotulo: "📅 Agenda", dono: false },
       { id: "agendamentos", rotulo: "📋 Agendamentos", dono: false },
       { id: "servicos", rotulo: "💅 Serviços", dono: true },
+      { id: "clientes", rotulo: "👤 Clientes", dono: true },
       { id: "produtos", rotulo: "🧴 Produtos", dono: true },
       { id: "relatorios", rotulo: "📈 Relatórios", dono: true },
       { id: "horarios", rotulo: "⚙️ Horários", dono: true },
@@ -898,6 +927,7 @@
       if (nome === "horarios") carregarConfig();
       if (nome === "usuarios") carregarUsuarios();
       if (nome === "servicos") carregarServicosAdmin();
+      if (nome === "clientes") carregarClientes();
       if (nome === "produtos") carregarProdutos();
       if (nome === "relatorios") carregarRelatorios();
       if (nome === "resumo") carregarResumo();
@@ -2038,12 +2068,220 @@ Até lá! ✨`;
       }
     }
 
-    // ============ FICHA DA CLIENTE ============
-    async function abrirFichaCliente(whatsapp) {
-      abrirModal('<p class="loading">Carregando ficha...</p>');
+    // ============ CLIENTES ============
+    function filtroClientes(tipo) {
+      const agora = new Date();
+      let de = "";
+      let ate = "";
+
+      if (tipo === "ano") {
+        de = `${agora.getFullYear()}-01-01`;
+        ate = `${agora.getFullYear()}-12-31`;
+      } else if (tipo === "mes") {
+        de = hoje().slice(0, 7) + "-01";
+        ate = hoje();
+      }
+
+      document.getElementById("cli-de").value = de;
+      document.getElementById("cli-ate").value = ate;
+      carregarClientes();
+    }
+
+    async function carregarClientes() {
+      const de = document.getElementById("cli-de").value;
+      const ate = document.getElementById("cli-ate").value;
+      const busca = document.getElementById("cli-busca").value.trim();
+
+      const params = new URLSearchParams();
+      if (de) params.set("de", de);
+      if (ate) params.set("ate", ate);
+      if (busca) params.set("busca", busca);
+
+      const container = document.getElementById("cli-tabela");
+      container.innerHTML = '<p class="loading">Carregando...</p>';
 
       try {
-        const resp = await fetch(`${API_URL}/api/clientes/${whatsapp}/historico`, {
+        const [respLista, respPend] = await Promise.all([
+          fetch(`${API_URL}/api/clientes?${params}`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/clientes/pendentes`, { headers: authHeaders() })
+        ]);
+
+        if (respLista.status === 403) {
+          container.innerHTML = '<p class="loading">Acesso restrito.</p>';
+          return;
+        }
+
+        const dados = await respLista.json();
+        const pendencias = await respPend.json();
+
+        renderizarResumoClientes(dados.totais);
+        renderizarPendencias(pendencias);
+        renderizarTabelaClientes(dados.clientes);
+      } catch {
+        container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
+      }
+    }
+
+    function renderizarResumoClientes(t) {
+      document.getElementById("cli-resumo").innerHTML = `
+        <div class="card-rel">
+          <div class="valor">${t.clientes}</div>
+          <div class="rotulo">Clientes</div>
+        </div>
+        <div class="card-rel">
+          <div class="valor">${brl(t.receita)}</div>
+          <div class="rotulo">Receita no período</div>
+        </div>
+        <div class="card-rel">
+          <div class="valor">${t.atendimentos}</div>
+          <div class="rotulo">Atendimentos</div>
+        </div>
+        <div class="card-rel">
+          <div class="valor">${t.faltas}</div>
+          <div class="rotulo">Faltas</div>
+          <div class="extra">${t.cancelamentos} cancelamentos</div>
+        </div>
+      `;
+    }
+
+    function renderizarPendencias(p) {
+      const container = document.getElementById("cli-pendencias");
+
+      if (!p.agendamentos || p.agendamentos.length === 0) {
+        container.innerHTML = "";
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="card" style="border-left:4px solid #C0392B;">
+          <h2>💰 Pagamento pendente — ${p.total}</h2>
+          <p style="font-size:13px;color:#8B6F5C;margin-bottom:10px;">
+            Agendamentos de clientes que precisam pagar sinal de 20% antes do atendimento.
+          </p>
+          ${p.agendamentos
+            .map(
+              (a) => `
+            <div class="agendado">
+              <span class="barra" style="background:${corDoServico(a.servicoId)}"></span>
+              <span class="hora">${a.data.split("-").reverse().join("/")}<br><small style="font-weight:400;color:#8B6F5C;">${a.hora}</small></span>
+              <span class="quem">
+                <a href="#" onclick="abrirCliente('${a.clienteWhatsapp}');return false;"
+                   style="color:inherit;text-decoration:none;border-bottom:1px dotted #C4B5A0;">${a.clienteNome}</a>
+                <small>${a.servicoNome} · sinal de ${brl(a.servicoPreco * 0.2)}</small>
+              </span>
+              <span class="valor">${brl(a.servicoPreco)}</span>
+            </div>`
+            )
+            .join("")}
+        </div>`;
+    }
+
+    const STATUS_CLIENTE = {
+      concluido: "compareceu",
+      nao_compareceu: "faltou",
+      cancelado: "cancelou",
+      confirmado: "agendado"
+    };
+
+    function renderizarTabelaClientes(lista) {
+      const container = document.getElementById("cli-tabela");
+
+      if (!lista || lista.length === 0) {
+        container.innerHTML = '<p class="loading">Nenhuma cliente no período.</p>';
+        return;
+      }
+
+      container.innerHTML = `
+        <table class="tabela-rel">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th class="num">Atend.</th>
+              <th class="num">Receita</th>
+              <th class="num">Faltas</th>
+              <th class="num">Cancel.</th>
+              <th class="num">Último</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${lista
+              .map(
+                (c) => `
+              <tr style="cursor:pointer;" onclick="abrirCliente('${c.whatsapp}', '${(c.nome || "").replace(/'/g, "")}')">
+                <td>
+                  ${c.nome}
+                  ${c.sinalObrigatorio ? '<span class="tag-sinal">⚠ sinal</span>' : ""}
+                  <small style="display:block;color:#A89880;font-size:11px;">${c.whatsapp}</small>
+                </td>
+                <td class="num">${c.concluidos}</td>
+                <td class="num">${brl(c.receita)}</td>
+                <td class="num" style="${c.faltas > 0 ? "color:#A33B45;font-weight:700;" : ""}">${c.faltas}</td>
+                <td class="num">${c.cancelados}</td>
+                <td class="num" style="font-size:11px;color:#8B6F5C;">
+                  ${c.ultimoAtendimento ? c.ultimoAtendimento.split("-").reverse().join("/") : "—"}
+                </td>
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>`;
+    }
+
+    // ============ FICHA DETALHADA DA CLIENTE ============
+    let histCliente = { whatsapp: null, nome: "", ano: "", mes: "" };
+
+    const NOMES_MES_CURTO = [
+      "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+      "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+    ];
+
+    function anosDisponiveis() {
+      const atual = new Date().getFullYear();
+      return [atual, atual - 1, atual - 2, atual - 3, atual - 4];
+    }
+
+    async function abrirCliente(whatsapp, nome) {
+      histCliente = {
+        whatsapp,
+        nome: nome || "",
+        ano: String(new Date().getFullYear()),
+        mes: ""
+      };
+      await renderHistoricoCliente();
+    }
+
+    function mudarFiltroHistorico() {
+      histCliente.ano = document.getElementById("hist-ano").value;
+      histCliente.mes = document.getElementById("hist-mes").value;
+      renderHistoricoCliente();
+    }
+
+    async function renderHistoricoCliente() {
+      const { whatsapp, nome, ano, mes } = histCliente;
+      abrirModal('<p class="loading">Carregando...</p>');
+
+      let de = "";
+      let ate = "";
+
+      if (ano) {
+        if (mes) {
+          const ultimo = new Date(Number(ano), Number(mes), 0).getDate();
+          de = `${ano}-${mes}-01`;
+          ate = `${ano}-${mes}-${String(ultimo).padStart(2, "0")}`;
+        } else {
+          de = `${ano}-01-01`;
+          ate = `${ano}-12-31`;
+        }
+      }
+
+      const params = new URLSearchParams();
+      if (de) {
+        params.set("de", de);
+        params.set("ate", ate);
+      }
+
+      try {
+        const resp = await fetch(`${API_URL}/api/clientes/${whatsapp}/historico?${params}`, {
           headers: authHeaders()
         });
         const dados = await resp.json();
@@ -2056,38 +2294,74 @@ Até lá! ✨`;
         const c = dados.cliente || {};
         const t = dados.totais;
 
+        const opcoesAno = [
+          `<option value="">Todo o período</option>`,
+          ...anosDisponiveis().map(
+            (a) => `<option value="${a}" ${String(a) === String(ano) ? "selected" : ""}>${a}</option>`
+          )
+        ].join("");
+
+        const opcoesMes = NOMES_MES_CURTO.map((m, i) => {
+          if (i === 0) return `<option value="">Todos os meses</option>`;
+          const valor = String(i).padStart(2, "0");
+          return `<option value="${valor}" ${valor === mes ? "selected" : ""}>${m}</option>`;
+        }).join("");
+
+        const lista = dados.agendamentos.length
+          ? dados.agendamentos
+              .map(
+                (a) => `
+            <div class="linha" style="font-size:12px;border-bottom:1px solid #F5EFE6;padding:7px 0;display:flex;align-items:center;gap:6px;">
+              <span class="ponto" style="background:${corDoServico(a.servicoId)}"></span>
+              <span style="min-width:88px;">${a.data.split("-").reverse().join("/")} ${a.hora}</span>
+              <span style="flex:1;">${a.servicoNome}</span>
+              <span style="color:#8B6F5C;">${STATUS_CLIENTE[a.status] || a.status}</span>
+              <span style="min-width:64px;text-align:right;">${brl(a.servicoPreco)}</span>
+            </div>`
+              )
+              .join("")
+          : '<p class="linha">Nenhum agendamento no período.</p>';
+
         abrirModal(`
-          <h3>${c.nome || "Cliente"}</h3>
+          <h3>${c.nome || nome || "Cliente"}</h3>
           <div class="linha"><strong>WhatsApp:</strong> ${whatsapp}</div>
-          <div class="linha"><strong>Atendimentos:</strong> ${t.concluidos}</div>
-          <div class="linha"><strong>Faltas:</strong> ${t.faltas}</div>
-          <div class="linha"><strong>Total gasto:</strong> ${brl(t.gastoTotal)}</div>
-          <div class="linha"><strong>Último atendimento:</strong> ${
-            t.ultimoAtendimento ? t.ultimoAtendimento.split("-").reverse().join("/") : "—"
-          }</div>
+
+          <div class="cards-relatorio" style="margin:14px 0;">
+            <div class="card-rel"><div class="valor">${t.concluidos}</div><div class="rotulo">Atendimentos</div></div>
+            <div class="card-rel"><div class="valor">${brl(t.gastoTotal)}</div><div class="rotulo">Total gasto</div></div>
+            <div class="card-rel"><div class="valor">${t.faltas}</div><div class="rotulo">Faltas</div></div>
+            <div class="card-rel"><div class="valor">${t.cancelados}</div><div class="rotulo">Cancelamentos</div></div>
+            <div class="card-rel"><div class="valor">${brl(t.ticketMedio)}</div><div class="rotulo">Ticket médio</div></div>
+            <div class="card-rel">
+              <div class="valor" style="font-size:14px;">
+                ${t.ultimoAtendimento ? t.ultimoAtendimento.split("-").reverse().join("/") : "—"}
+              </div>
+              <div class="rotulo">Último atendimento</div>
+            </div>
+          </div>
+
           ${
             c.sinalObrigatorio
-              ? `<p style="color:#A33B45;font-size:13px;margin-top:10px;">⚠ Esta cliente precisa pagar sinal.</p>
+              ? `<p style="color:#A33B45;font-size:13px;margin-bottom:6px;">⚠ Esta cliente precisa pagar sinal.</p>
                  <button class="btn-secundario" onclick="liberarSinal('${whatsapp}')">Liberar sinal</button>`
               : ""
           }
-          <div style="margin-top:14px;">
-            <h3 style="font-size:13px;">Últimos agendamentos</h3>
-            ${dados.agendamentos
-              .slice(0, 8)
-              .map(
-                (a) => `<div class="linha" style="font-size:12px;border-bottom:1px solid #F5EFE6;padding:6px 0;">
-                  <span class="ponto" style="background:${corDoServico(a.servicoId)};margin-right:6px;"></span>
-                  ${a.data.split("-").reverse().join("/")} ${a.hora} · ${a.servicoNome} ·
-                  <span style="color:#8B6F5C;">${a.status}</span>
-                </div>`
-              )
-              .join("")}
+
+          <div style="display:flex;gap:8px;margin:16px 0 10px;">
+            <select id="hist-ano" class="input-text" style="margin:0;" onchange="mudarFiltroHistorico()">${opcoesAno}</select>
+            <select id="hist-mes" class="input-text" style="margin:0;" onchange="mudarFiltroHistorico()">${opcoesMes}</select>
           </div>
+
+          <div>${lista}</div>
         `);
       } catch {
         abrirModal('<h3>Cliente</h3><p class="linha">Erro ao carregar.</p>');
       }
+    }
+
+    // Mantém os atalhos antigos (agenda, lista de agendamentos) apontando para a ficha nova.
+    function abrirFichaCliente(whatsapp) {
+      return abrirCliente(whatsapp);
     }
 
     async function liberarSinal(whatsapp) {
@@ -2101,6 +2375,7 @@ Até lá! ✨`;
       fecharModal();
       carregarCalendario();
       carregarAgenda();
+      carregarClientes();
     }
 
     // ============ REMARCAR ============
