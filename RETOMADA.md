@@ -128,9 +128,37 @@ ser excluído depois.
 
 ### Quando a verificação aprovar — 3 passos para ligar o bot
 
+**RESULTADO (18/11, 17h): verificação APROVADA, mas o envio continua bloqueado.**
+Ver o bloco "O que descubrimos ao ligar o bot" abaixo.
+
 1. Gerar **token novo** em WhatsApp → API Setup e atualizar `WHATSAPP_TOKEN` na Render
 2. Testar o envio: `POST /{phone-number-id}/messages` deve retornar 200 e a mensagem chegar
 3. Definir `LEMBRETES_ATIVOS=1` (se quiser o lembrete de véspera rodando)
+
+## O que descobrimos ao ligar o bot (18/11, tarde)
+
+**1. O webhook não chegava por falta de inscrição do app na conta do WhatsApp.**
+Assinar o campo `messages` não basta. É preciso o app estar inscrito na WABA:
+
+```bash
+POST https://graph.facebook.com/v22.0/{WABA_ID}/subscribed_apps
+Authorization: Bearer {token}
+```
+
+Conferir com `GET .../subscribed_apps`. Depois disso os eventos reais passaram a chegar.
+
+**2. O recebimento funciona de ponta a ponta.** Mensagem real do celular chegou, foi gravada em
+`webhookeventos`, o bot criou a sessão em `conversas`. Só a resposta falha.
+
+**3. O envio para o Brasil continua bloqueado: `130497`.** Testado com:
+business verificado ✅, cartão cadastrado ✅, app publicado (Ao vivo) ✅, token novo ✅.
+Conclusão: **o número de teste americano (+1 555-155-3276) não envia para números brasileiros**.
+
+**Possibilidade a testar:** a restrição pode ser temporária (24–48h após verificação). Vale um
+reteste depois disso, antes de descartar de vez.
+
+**Se não liberar:** o bot só funciona com **número brasileiro real** — o onboarding da Marina
+(coexistência via Gupshup), que depende da autorização dela.
 
 Se a verificação for **recusada** citando documentos: refazer com "Ponto comercial = Brazil" e anexar
 o cartão CNPJ em PDF.
