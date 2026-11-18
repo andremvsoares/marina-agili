@@ -248,14 +248,25 @@
     /* telas bem estreitas */
     @media (max-width: 520px) {
       .calendario { gap: 4px; }
+      .calendario-semana { gap: 4px; }
+
       .dia {
         min-height: 54px;
-        padding: 4px 5px;
+        padding: 4px;
         border-radius: 9px;
-        gap: 3px;
+        gap: 2px;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
       }
       .dia .numero { font-size: 11px; }
-      .dia .qtd { font-size: 8px; padding: 1px 4px; }
+      .dia .qtd {
+        font-size: 8px;
+        padding: 1px 4px;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
       .dia .pontos { display: none; }
 
       .calendario-semana span { font-size: 9px; letter-spacing: 0; }
@@ -416,6 +427,8 @@
       gap: 5px;
       font-family: inherit;
       text-align: left;
+      min-width: 0;
+      overflow: hidden;
     }
     .dia:hover { border-color: #C4B5A0; }
     .dia .numero { font-size: 13px; font-weight: 700; color: #4A3B30; }
@@ -714,21 +727,27 @@
       margin-bottom: 10px;
     }
     .tabela-rel { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .tabela-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .tabela-rel th {
       text-align: left;
       color: #8B6F5C;
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      padding: 6px 4px;
+      padding: 6px 8px;
       border-bottom: 1px solid #EDE4D8;
+      vertical-align: bottom;
     }
     .tabela-rel td {
-      padding: 7px 4px;
+      padding: 8px;
       border-bottom: 1px solid #F5EFE6;
       color: #4A3B30;
+      vertical-align: middle;
     }
     .tabela-rel td.num { text-align: right; white-space: nowrap; }
+    .tabela-rel th.num { text-align: right; white-space: nowrap; }
+    .tabela-rel th:first-child,
+    .tabela-rel td:first-child { padding-left: 4px; }
 
     /* ---------- resultado (DRE) ---------- */
     .resultado-box {
@@ -2313,6 +2332,7 @@ Até lá! ✨`;
           <div class="grid-duas">
           <div class="grafico-box">
             <h4>Serviços</h4>
+            <div class="tabela-scroll">
             <table class="tabela-rel">
               <thead><tr><th>Serviço</th><th class="num">Qtd</th><th class="num">Receita</th><th class="num">Custo</th><th class="num">Margem</th></tr></thead>
               <tbody>
@@ -2333,10 +2353,12 @@ Até lá! ✨`;
                 }
               </tbody>
             </table>
+            </div>
           </div>
 
           <div class="grafico-box">
             <h4>Produtos mais consumidos</h4>
+            <div class="tabela-scroll">
             <table class="tabela-rel">
               <thead><tr><th>Produto</th><th class="num">Qtd</th><th class="num">Custo</th></tr></thead>
               <tbody>
@@ -2355,6 +2377,7 @@ Até lá! ✨`;
                 }
               </tbody>
             </table>
+            </div>
           </div>
 
           </div>
@@ -3269,6 +3292,7 @@ Até lá! ✨`;
       }
 
       container.innerHTML = `
+        <div class="tabela-scroll">
         <table class="tabela-rel">
           <thead>
             <tr>
@@ -3303,7 +3327,8 @@ Até lá! ✨`;
               )
               .join("")}
           </tbody>
-        </table>`;
+        </table>
+        </div>`;
     }
 
     // ============ FICHA DETALHADA DA CLIENTE ============
