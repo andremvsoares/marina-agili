@@ -591,6 +591,40 @@
       color: #4A3B30;
     }
     .tabela-rel td.num { text-align: right; white-space: nowrap; }
+
+    /* ---------- resultado (DRE) ---------- */
+    .resultado-box {
+      background: #FAF7F2;
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+    }
+    .resultado-linha {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 6px 0;
+      font-size: 13px;
+      color: #6B5B4B;
+    }
+    .resultado-linha.total {
+      border-top: 1px solid #EDE4D8;
+      margin-top: 6px;
+      padding-top: 10px;
+      font-weight: 700;
+      color: #4A3B30;
+    }
+    .resultado-linha.desconto strong { color: #A33B45; }
+    .resultado-linha.lucro {
+      border-top: 2px solid #8B5A3C;
+      margin-top: 8px;
+      padding-top: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #4A3B30;
+    }
+    .resultado-linha.lucro strong { color: #3F6B38; font-size: 20px; }
+    .resultado-linha.lucro.negativo strong { color: #A33B45; }
   </style>
 </head>
 <body>
@@ -2065,14 +2099,34 @@ Até lá! ✨`;
       container.innerHTML = '<p class="loading">Calculando...</p>';
 
       try {
-        const [resumo, servicos, dias, produtos] = await Promise.all([
+        const [resumo, servicos, dias, produtos, resultado] = await Promise.all([
           fetch(`${API_URL}/api/relatorios/resumo?de=${de}&ate=${ate}`, { headers: authHeaders() }).then((r) => r.json()),
           fetch(`${API_URL}/api/relatorios/servicos?de=${de}&ate=${ate}`, { headers: authHeaders() }).then((r) => r.json()),
           fetch(`${API_URL}/api/relatorios/por-dia?de=${de}&ate=${ate}`, { headers: authHeaders() }).then((r) => r.json()),
-          fetch(`${API_URL}/api/relatorios/produtos?de=${de}&ate=${ate}`, { headers: authHeaders() }).then((r) => r.json())
+          fetch(`${API_URL}/api/relatorios/produtos?de=${de}&ate=${ate}`, { headers: authHeaders() }).then((r) => r.json()),
+          fetch(`${API_URL}/api/relatorios/resultado?de=${de}&ate=${ate}`, { headers: authHeaders() }).then((r) => r.json())
         ]);
 
         container.innerHTML = `
+          <div class="resultado-box">
+            <div class="resultado-linha"><span>Receita de serviços</span><strong>${brl(resultado.receitaServicos)}</strong></div>
+            <div class="resultado-linha"><span>Receita de produtos</span><strong>${brl(resultado.receitaProdutos)}</strong></div>
+            <div class="resultado-linha total"><span>Receita total</span><strong>${brl(resultado.receita)}</strong></div>
+            <div class="resultado-linha desconto"><span>(−) Custo de material</span><strong>− ${brl(resultado.custoMaterial)}</strong></div>
+            <div class="resultado-linha desconto"><span>(−) Despesas fixas</span><strong>− ${brl(resultado.despesasFixas)}</strong></div>
+            <div class="resultado-linha desconto"><span>(−) Cartão de crédito</span><strong>− ${brl(resultado.despesasCartao)}</strong></div>
+            <div class="resultado-linha desconto"><span>(−) Despesas avulsas</span><strong>− ${brl(resultado.despesasAvulsas)}</strong></div>
+            <div class="resultado-linha lucro ${resultado.lucro < 0 ? "negativo" : ""}">
+              <span>${resultado.lucro < 0 ? "Prejuízo do período" : "Lucro do período"}</span>
+              <strong>${brl(resultado.lucro)}</strong>
+            </div>
+            <div class="resultado-linha"><span>Margem sobre a receita</span><strong>${resultado.margem}%</strong></div>
+          </div>
+
+          <div class="grafico-box">
+            <h4>Receita × despesa × lucro por mês</h4>
+            <canvas id="grafico-resultado" height="140"></canvas>
+          </div>
           <div class="cards-relatorio">
             <div class="card-rel">
               <div class="valor">${brl(resumo.receitaRealizada)}</div>
@@ -2172,6 +2226,7 @@ Até lá! ✨`;
 
         desenharGraficoDias(dias);
         desenharGraficoServicos(servicos);
+        desenharGraficoResultado(resultado.serie);
       } catch {
         container.innerHTML = '<p class="loading">Erro ao calcular.</p>';
       }
@@ -2250,6 +2305,56 @@ Até lá! ✨`;
         options: {
           responsive: true,
           plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { font: { size: 10 } } },
+            x: { ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    function desenharGraficoResultado(serie) {
+      destruirGrafico("resultado");
+      if (typeof Chart === "undefined" || !Array.isArray(serie) || !serie.length) return;
+
+      const ctx = document.getElementById("grafico-resultado");
+      if (!ctx) return;
+
+      graficos.resultado = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: serie.map((s) => NOMES_MES_CURTO[Number(s.mes.slice(5, 7)) - 1].slice(0, 3)),
+          datasets: [
+            {
+              type: "bar",
+              label: "Receita",
+              data: serie.map((s) => s.receita),
+              backgroundColor: "#8FA98F",
+              borderRadius: 4
+            },
+            {
+              type: "bar",
+              label: "Despesa",
+              data: serie.map((s) => Number((s.despesa + s.custoMaterial).toFixed(2))),
+              backgroundColor: "#C97B63",
+              borderRadius: 4
+            },
+            {
+              type: "line",
+              label: "Lucro",
+              data: serie.map((s) => s.lucro),
+              borderColor: "#8B5A3C",
+              backgroundColor: "#8B5A3C",
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 3,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { boxWidth: 12, font: { size: 10 } } } },
           scales: {
             y: { beginAtZero: true, ticks: { font: { size: 10 } } },
             x: { ticks: { font: { size: 10 } } }

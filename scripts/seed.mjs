@@ -231,13 +231,13 @@ try {
   const agendamentos = [];
   const lotes = [];
 
-  for (let offset = -60; offset <= 21; offset++) {
+  for (let offset = -90; offset <= 21; offset++) {
     const data = somarDias(hoje, offset);
     const horas = horariosPorDia[String(diaSemana(data))] || [];
     if (horas.length === 0) continue;
 
     // dias mais movimentados nas últimas semanas
-    const quantidade = offset < 0 ? entre(1, 4) : entre(0, 3);
+    const quantidade = offset < 0 ? entre(3, 5) : entre(1, 3);
     const usadas = new Set();
 
     for (let k = 0; k < quantidade; k++) {
@@ -476,7 +476,7 @@ try {
       categoria,
       diaVencimento: dia,
       formaPagamento: categoria === "salario" ? "pix" : "boleto",
-      inicioEm: somarDias(hoje, -90).slice(0, 7),
+      inicioEm: somarDias(hoje, -120).slice(0, 7),
       fimEm: null,
       ativo: true,
       observacoes: "",

@@ -5,9 +5,11 @@ import express from "express";
 import Agendamento from "../models/Agendamento.js";
 import Servico from "../models/Servico.js";
 import Produto from "../models/Produto.js";
+import Venda from "../models/Venda.js";
 import { autenticar, exigirDono } from "./admin.js";
 import { horariosDoDia, hojeSP } from "../services/agenda.js";
 import { mapaCustoPorServico, mapaCustoUnitario, custoDaLista, arredondar } from "../services/custos.js";
+import { resumoDoMes, somarMeses } from "../services/despesas.js";
 
 const router = express.Router();
 
@@ -217,6 +219,87 @@ router.get("/produtos", async (req, res) => {
       .sort((a, b) => b.custo - a.custo);
 
     res.json(lista);
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// ---------- resultado (receita - material - despesas) ----------
+router.get("/resultado", async (req, res) => {
+  try {
+    const { de, ate } = periodo(req.query);
+
+    const [agendamentos, vendas, mapaServico] = await Promise.all([
+      Agendamento.find({ data: { $gte: de, $lte: ate } }).lean(),
+      Venda.find({ data: { $gte: de, $lte: ate } }).lean(),
+      mapaCustoPorServico()
+    ]);
+
+    const concluidos = agendamentos.filter((a) => a.status === "concluido");
+
+    const meses = [];
+    for (let mes = de.slice(0, 7); mes <= ate.slice(0, 7); mes = somarMeses(mes, 1)) {
+      meses.push(mes);
+    }
+
+    const serie = [];
+
+    for (const mes of meses) {
+      const doMes = concluidos.filter((a) => a.data.slice(0, 7) === mes);
+      const vendasDoMes = vendas.filter((v) => v.data.slice(0, 7) === mes);
+
+      const receitaServicos = arredondar(doMes.reduce((s, a) => s + a.servicoPreco, 0));
+      const receitaProdutos = arredondar(vendasDoMes.reduce((s, v) => s + v.total, 0));
+      const custoMaterial = arredondar(custoDaLista(doMes, mapaServico));
+
+      const despesas = await resumoDoMes(mes);
+
+      const receita = arredondar(receitaServicos + receitaProdutos);
+      const despesa = despesas.totais.total;
+      const lucro = arredondar(receita - custoMaterial - despesa);
+
+      serie.push({
+        mes,
+        receitaServicos,
+        receitaProdutos,
+        receita,
+        custoMaterial,
+        despesasFixas: despesas.totais.fixas,
+        despesasCartao: despesas.totais.cartao,
+        despesasAvulsas: despesas.totais.avulsas,
+        despesa,
+        lucro,
+        margem: receita ? arredondar((lucro / receita) * 100) : 0
+      });
+    }
+
+    const soma = (campo) => arredondar(serie.reduce((s, m) => s + m[campo], 0));
+
+    const receitaServicos = soma("receitaServicos");
+    const receitaProdutos = soma("receitaProdutos");
+    const receita = soma("receita");
+    const custoMaterial = soma("custoMaterial");
+    const despesasFixas = soma("despesasFixas");
+    const despesasCartao = soma("despesasCartao");
+    const despesasAvulsas = soma("despesasAvulsas");
+    const despesa = soma("despesa");
+    const lucro = arredondar(receita - custoMaterial - despesa);
+
+    res.json({
+      de,
+      ate,
+      receitaServicos,
+      receitaProdutos,
+      receita,
+      custoMaterial,
+      despesasFixas,
+      despesasCartao,
+      despesasAvulsas,
+      despesa,
+      lucro,
+      margem: receita ? arredondar((lucro / receita) * 100) : 0,
+      serie
+    });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
