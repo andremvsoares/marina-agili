@@ -99,6 +99,42 @@ o agendador fica desligado de propósito — evita disparo acidental durante os 
 definir `WHATSAPP_TEMPLATE_LEMBRETE` na Render. O texto sugerido está em `backend/textos.js`
 (`TEXTOS.lembrete`) — serve de base para o corpo do template.
 
+## Estado em 18/11/2026 (fim do dia)
+
+**Domínio próprio no ar:** `https://marinagili.app.br` — registrado no Registro.br (titular: André, CPF),
+DNS na Vercel, HTTPS válido, site servindo. `www` também resolve. A API já aceita a origem nova (CORS).
+
+**`marinagili.com.br`**: pedido em fila, com ticket concorrente de numeração menor (CNPJ). Só sai quando
+o outro expirar. O `.app.br` cobre a necessidade enquanto isso.
+
+**Verificação da empresa na Meta:** **EM ANÁLISE** (2 a 10 dias úteis). A Meta dispensou o upload de
+documentos — encontrou o registro na Receita e vai cruzar os dados.
+
+Dados oficiais usados (cartão CNPJ):
+```
+CNPJ:            32.729.306/0001-70
+Nome empresarial: 32.729.306 MARINA ZAMBELLI AGILI
+Natureza:        Empresário (Individual) — porte ME (NÃO é MEI)
+Endereço:        R SAURO ARMANI, 156 — Parque Cidade Nova
+                 Mogi Guaçu/SP — 13.845-424 (sem complemento)
+Telefone:        (19) 9993-6402
+Abertura:        11/02/2019 — situação ATIVA
+```
+Portfólio verificado: **Marina Agili** (ID 2013203612316576) — é o que possui a conta do WhatsApp.
+A Página do Facebook e o Instagram estão no portfólio "Design de Sobrancelha" (separado; não bloqueia).
+
+**App da Meta:** renomeado para **Marina Agili**. Existe um app duplicado (`29223846860608745`) que pode
+ser excluído depois.
+
+### Quando a verificação aprovar — 3 passos para ligar o bot
+
+1. Gerar **token novo** em WhatsApp → API Setup e atualizar `WHATSAPP_TOKEN` na Render
+2. Testar o envio: `POST /{phone-number-id}/messages` deve retornar 200 e a mensagem chegar
+3. Definir `LEMBRETES_ATIVOS=1` (se quiser o lembrete de véspera rodando)
+
+Se a verificação for **recusada** citando documentos: refazer com "Ponto comercial = Brazil" e anexar
+o cartão CNPJ em PDF.
+
 ## Pendências (na ordem que faz sentido)
 
 | # | O que falta | Depende de |
