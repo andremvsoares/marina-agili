@@ -6,6 +6,7 @@
 
 import express from "express";
 import crypto from "node:crypto";
+import WebhookEvento from "../models/WebhookEvento.js";
 import { TEXTOS as T } from "../textos.js";
 import {
   listarServicos,
@@ -138,8 +139,31 @@ router.post("/", (req, res) => {
   // A Meta exige 200 rápido; o processamento segue em background.
   res.sendStatus(200);
 
+  registrarEvento(req.body).catch(() => {});
+
   tratarPayload(req.body).catch((err) => console.error("❌ Erro no webhook:", err));
 });
+
+// Guarda o evento para diagnóstico (expira em 24h).
+async function registrarEvento(corpo) {
+  const mudanca = corpo?.entry?.[0]?.changes?.[0];
+  const valor = mudanca?.value || {};
+  const tipo = mudanca?.field || "";
+
+  let resumo = "evento";
+  if (Array.isArray(valor.messages) && valor.messages.length) {
+    const msg = valor.messages[0];
+    resumo = `mensagem de ${msg.from} (${msg.type})`;
+  } else if (Array.isArray(valor.statuses) && valor.statuses.length) {
+    resumo = `status ${valor.statuses[0].status}`;
+  } else if (Array.isArray(valor.message_echoes) && valor.message_echoes.length) {
+    resumo = "eco de mensagem do app";
+  }
+
+  console.log("📩 Webhook recebido:", tipo, "|", resumo);
+
+  await WebhookEvento.create({ tipo, resumo, corpo });
+}
 
 async function tratarPayload(corpo) {
   const entradas = corpo?.entry || [];
