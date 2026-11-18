@@ -121,6 +121,15 @@ try {
     console.log("🧹 Demonstração removida:");
     console.log(`   ${ag.deletedCount} agendamentos | ${ve.deletedCount} vendas | ${cl.deletedCount} clientes`);
     console.log(`   ${pv.deletedCount} produtos de venda | ${insumos.length} insumos | ${us.deletedCount} usuários | ${bl.deletedCount} bloqueios`);
+
+    // despesas de demonstração (marcadas com _demo)
+    const colecoes = (await db.listCollections().toArray()).map((c) => c.name);
+    for (const nome of colecoes) {
+      if (!/despesa|cartao|compra/i.test(nome)) continue;
+      const r = await db.collection(nome).deleteMany({ _demo: true });
+      if (r.deletedCount) console.log(`   ${r.deletedCount} registro(s) de despesa em ${nome}`);
+    }
+
     process.exit(0);
   }
 
@@ -442,6 +451,128 @@ try {
     }
   }
 
+  // ==================== DESPESAS ====================
+  const somarMeses = (mes, n) => {
+    const [a, m] = mes.split("-").map(Number);
+    return new Date(Date.UTC(a, m - 1 + n, 1)).toISOString().slice(0, 7);
+  };
+
+  const despesasFixas = [
+    ["Aluguel do espaço", 1800, "aluguel", 5],
+    ["Internet", 120, "internet", 10],
+    ["Energia elétrica", 280, "energia", 15],
+    ["Software de agendamento", 90, "software", 20],
+    ["Ajudante (meio período)", 900, "salario", 5]
+  ];
+
+  let fixasCriadas = 0;
+  for (const [nome, valor, categoria, dia] of despesasFixas) {
+    const existe = await db.collection("despesafixas").findOne({ nome, _demo: true });
+    if (existe) continue;
+
+    await db.collection("despesafixas").insertOne({
+      nome,
+      valor,
+      categoria,
+      diaVencimento: dia,
+      formaPagamento: categoria === "salario" ? "pix" : "boleto",
+      inicioEm: somarDias(hoje, -90).slice(0, 7),
+      fimEm: null,
+      ativo: true,
+      observacoes: "",
+      criadoEm: new Date(),
+      _demo: true
+    });
+    fixasCriadas++;
+  }
+
+  const cartoesDemo = [
+    ["Nubank", 5, 12, "#9B8AA6", 5000],
+    ["Itaú Click", 20, 28, "#7C9EB2", 8000]
+  ];
+
+  const cartoesCriados = [];
+  for (const [nome, fechamento, vencimento, cor, limite] of cartoesDemo) {
+    let cartao = await db.collection("cartaocreditos").findOne({ nome, _demo: true });
+    if (!cartao) {
+      const r = await db.collection("cartaocreditos").insertOne({
+        nome,
+        bandeira: nome === "Nubank" ? "master" : "visa",
+        ultimosDigitos: String(entre(1000, 9999)),
+        diaFechamento: fechamento,
+        diaVencimento: vencimento,
+        limite,
+        cor,
+        ativo: true,
+        criadoEm: new Date(),
+        _demo: true
+      });
+      cartao = { _id: r.insertedId, nome, diaFechamento: fechamento };
+    }
+    cartoesCriados.push(cartao);
+  }
+
+  const comprasDemo = [
+    ["Material de sobrancelha", 420, 6, "material", 0, 25],
+    ["Cadeira de atendimento", 1850, 12, "outro", 1, 60],
+    ["Capas e aventais", 260, 3, "material", 0, 18],
+    ["Curso de atualização", 690, 6, "marketing", 1, 40],
+    ["Produtos de revenda (estoque)", 540, 1, "material", 0, 12]
+  ];
+
+  let comprasCriadas = 0;
+  for (let i = 0; i < comprasDemo.length; i++) {
+    const [descricao, valorTotal, parcelas, categoria, indiceCartao, diasAtras] = comprasDemo[i];
+    const existe = await db.collection("compracartaos").findOne({ descricao, _demo: true });
+    if (existe) continue;
+
+    const cartao = cartoesCriados[indiceCartao] || cartoesCriados[0];
+    const dataCompra = somarDias(hoje, -diasAtras);
+    const dia = Number(dataCompra.slice(8, 10));
+    const primeiroMes =
+      dia > (cartao.diaFechamento || 5)
+        ? somarMeses(dataCompra.slice(0, 7), 1)
+        : dataCompra.slice(0, 7);
+
+    await db.collection("compracartaos").insertOne({
+      cartaoId: cartao._id,
+      descricao,
+      categoria,
+      valorTotal,
+      parcelas,
+      dataCompra,
+      primeiroMes,
+      observacoes: "",
+      criadoEm: new Date(),
+      _demo: true
+    });
+    comprasCriadas++;
+  }
+
+  const avulsasDemo = [
+    ["Manutenção da autoclave", 180, "manutencao", -8],
+    ["Material de limpeza", 95, "material", -3]
+  ];
+
+  let avulsasCriadas = 0;
+  for (const [nome, valor, categoria, dias] of avulsasDemo) {
+    const data = somarDias(hoje, dias);
+    const existe = await db.collection("despesaavulsas").findOne({ nome, data, _demo: true });
+    if (existe) continue;
+
+    await db.collection("despesaavulsas").insertOne({
+      nome,
+      valor,
+      categoria,
+      data,
+      formaPagamento: "pix",
+      observacoes: "",
+      criadoEm: new Date(),
+      _demo: true
+    });
+    avulsasCriadas++;
+  }
+
   // ==================== RESUMO ====================
   const totalAg = agendamentos.length;
   const porStatus = {
@@ -459,6 +590,7 @@ try {
   console.log(`   ${produtosVenda.length} produtos de venda`);
   console.log("   1 usuário de equipe: seed.funcionaria / demo1234");
   console.log("   2 dias bloqueados");
+  console.log(`   ${fixasCriadas} despesas fixas | ${cartoesCriados.length} cartões | ${comprasCriadas} compras parceladas | ${avulsasCriadas} avulsas`);
   console.log("\nPara apagar: node scripts/seed.mjs --limpar");
 } catch (err) {
   console.error("❌ Erro:", err.message);

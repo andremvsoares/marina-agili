@@ -16,6 +16,7 @@ import agendaRoutes from "./routes/agenda.js";
 import produtosRoutes from "./routes/produtos.js";
 import relatoriosRoutes from "./routes/relatorios.js";
 import vendasRoutes from "./routes/vendas.js";
+import despesasRoutes from "./routes/despesas.js";
 import {
   marcarFalta,
   registrarComparecimento,
@@ -91,6 +92,7 @@ app.use("/api/agenda", agendaRoutes);
 app.use("/api/produtos", produtosRoutes);
 app.use("/api/relatorios", relatoriosRoutes);
 app.use("/api/vendas", vendasRoutes);
+app.use("/api/despesas", despesasRoutes);
 
 // Webhook do WhatsApp. O rate limit global é generoso de propósito:
 // a Meta pode entregar vários eventos seguidos.

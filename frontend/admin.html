@@ -861,6 +861,151 @@
         </div>
       </div>
 
+      <!-- ================= DESPESAS ================= -->
+      <div id="tab-despesas" class="tab-content" style="display:none;">
+        <div class="calendario-topo">
+          <button class="nav-mes" onclick="mudarMesDespesa(-1)">‹</button>
+          <h2 id="despesa-titulo">—</h2>
+          <button class="nav-mes" onclick="mudarMesDespesa(1)">›</button>
+          <button class="btn-secundario" onclick="irMesAtualDespesa()">Mês atual</button>
+        </div>
+
+        <div id="despesa-resumo" class="cards-relatorio"></div>
+
+        <div class="grafico-box">
+          <h4>Previsão dos próximos 6 meses</h4>
+          <canvas id="grafico-despesas" height="120"></canvas>
+        </div>
+
+        <div class="grid-duas">
+          <div class="card">
+            <h2>Despesa fixa</h2>
+            <p style="font-size:13px;color:#8B6F5C;margin-bottom:10px;">
+              Aluguel, internet, energia — tudo que repete todo mês.
+            </p>
+
+            <input id="df-nome" class="input-text" placeholder="Nome (ex: Aluguel)">
+            <input id="df-valor" type="number" step="0.01" class="input-text" placeholder="Valor mensal (R$)">
+            <select id="df-categoria" class="input-text"></select>
+
+            <div class="grid-duas" style="gap:8px;">
+              <input id="df-dia" type="number" min="1" max="31" value="5" class="input-text" placeholder="Dia do vencimento">
+              <select id="df-forma" class="input-text">
+                <option value="pix">Pix</option>
+                <option value="boleto">Boleto</option>
+                <option value="debito">Débito automático</option>
+                <option value="dinheiro">Dinheiro</option>
+              </select>
+            </div>
+
+            <button class="btn-primary" onclick="criarDespesaFixa()">+ Adicionar despesa fixa</button>
+            <div id="lista-fixas" style="margin-top:14px;"></div>
+          </div>
+
+          <div class="card">
+            <h2>Cartão de crédito</h2>
+            <p style="font-size:13px;color:#8B6F5C;margin-bottom:10px;">
+              O dia de fechamento define em qual fatura cada compra entra.
+            </p>
+
+            <input id="cc-nome" class="input-text" placeholder="Operadora (ex: Nubank)">
+            <input id="cc-digitos" class="input-text" placeholder="Últimos 4 dígitos (opcional)" maxlength="4">
+
+            <div class="grid-duas" style="gap:8px;">
+              <input id="cc-fechamento" type="number" min="1" max="31" value="5" class="input-text" placeholder="Dia fechamento">
+              <input id="cc-vencimento" type="number" min="1" max="31" value="12" class="input-text" placeholder="Dia vencimento">
+            </div>
+
+            <input id="cc-limite" type="number" step="0.01" class="input-text" placeholder="Limite (opcional)">
+
+            <button class="btn-primary" onclick="criarCartao()">+ Adicionar cartão</button>
+            <div id="lista-cartoes" style="margin-top:14px;"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Compra no cartão</h2>
+          <div class="grid-duas" style="gap:8px;">
+            <div>
+              <label class="rotulo-campo">Cartão</label>
+              <select id="cp-cartao" class="input-text"></select>
+            </div>
+            <div>
+              <label class="rotulo-campo">Descrição</label>
+              <input id="cp-descricao" class="input-text" placeholder="Ex: Material de unhas">
+            </div>
+          </div>
+
+          <div class="grid-duas" style="gap:8px;">
+            <div>
+              <label class="rotulo-campo">Valor total</label>
+              <input id="cp-valor" type="number" step="0.01" class="input-text" placeholder="R$">
+            </div>
+            <div>
+              <label class="rotulo-campo">Parcelas</label>
+              <input id="cp-parcelas" type="number" min="1" max="48" value="1" class="input-text">
+            </div>
+          </div>
+
+          <div class="grid-duas" style="gap:8px;">
+            <div>
+              <label class="rotulo-campo">Data da compra</label>
+              <input id="cp-data" type="date" class="input-text">
+            </div>
+            <div>
+              <label class="rotulo-campo">Categoria</label>
+              <select id="cp-categoria" class="input-text"></select>
+            </div>
+          </div>
+
+          <button class="btn-primary" onclick="criarCompraCartao()">+ Lançar compra</button>
+          <div id="lista-compras" style="margin-top:14px;"></div>
+        </div>
+
+        <div class="card">
+          <h2>Despesa avulsa</h2>
+          <p style="font-size:13px;color:#8B6F5C;margin-bottom:10px;">Gasto único pago fora do cartão.</p>
+
+          <div class="grid-duas" style="gap:8px;">
+            <div>
+              <label class="rotulo-campo">Descrição</label>
+              <input id="av-nome" class="input-text" placeholder="Ex: Manutenção da cadeira">
+            </div>
+            <div>
+              <label class="rotulo-campo">Valor</label>
+              <input id="av-valor" type="number" step="0.01" class="input-text" placeholder="R$">
+            </div>
+          </div>
+
+          <div class="grid-duas" style="gap:8px;">
+            <div>
+              <label class="rotulo-campo">Data</label>
+              <input id="av-data" type="date" class="input-text">
+            </div>
+            <div>
+              <label class="rotulo-campo">Forma de pagamento</label>
+              <select id="av-forma" class="input-text">
+                <option value="pix">Pix</option>
+                <option value="dinheiro">Dinheiro</option>
+                <option value="debito">Débito</option>
+                <option value="boleto">Boleto</option>
+              </select>
+            </div>
+          </div>
+
+          <label class="rotulo-campo">Categoria</label>
+          <select id="av-categoria" class="input-text"></select>
+
+          <button class="btn-primary" onclick="criarDespesaAvulsa()">+ Lançar despesa</button>
+          <div id="lista-avulsas" style="margin-top:14px;"></div>
+        </div>
+
+        <div class="card" id="card-categorias">
+          <h2>Onde o dinheiro foi</h2>
+          <div id="despesa-categorias"></div>
+        </div>
+      </div>
+
       <!-- ================= RESUMO ================= -->
       <div id="tab-resumo" class="tab-content" style="display:none;">
         <div class="resumo-box">
@@ -963,6 +1108,7 @@
       { id: "clientes", rotulo: "👤 Clientes", dono: true },
       { id: "produtos", rotulo: "🧴 Produtos", dono: true },
       { id: "relatorios", rotulo: "📈 Relatórios", dono: true },
+      { id: "despesas", rotulo: "💸 Despesas", dono: true },
       { id: "horarios", rotulo: "⚙️ Horários", dono: true },
       { id: "usuarios", rotulo: "👥 Equipe", dono: true },
       { id: "resumo", rotulo: "📊 Resumo", dono: true }
@@ -994,6 +1140,7 @@
       if (nome === "vendas") carregarVendas();
       if (nome === "produtos") carregarProdutos();
       if (nome === "relatorios") carregarRelatorios();
+      if (nome === "despesas") carregarDespesas();
       if (nome === "resumo") carregarResumo();
       if (nome === "agendamentos") carregarAgendamentos();
     }
@@ -2324,6 +2471,433 @@ Até lá! ✨`;
         headers: authHeaders()
       });
       if (resp.ok) { carregarVendas(); carregarClientes(); }
+      else alert("Erro ao excluir.");
+    }
+
+    // ============ DESPESAS ============
+    const CATEGORIAS_DESPESA = [
+      ["aluguel", "Aluguel"], ["internet", "Internet"], ["energia", "Energia"], ["agua", "Água"],
+      ["telefone", "Telefone"], ["salario", "Salário"], ["software", "Software"],
+      ["marketing", "Marketing"], ["material", "Material"], ["manutencao", "Manutenção"],
+      ["impostos", "Impostos"], ["outro", "Outro"]
+    ];
+
+    let mesDespesa = hoje().slice(0, 7);
+    let cartoesCache = [];
+
+    function preencherCategorias() {
+      const opcoes = CATEGORIAS_DESPESA.map(([valor, rotulo]) => `<option value="${valor}">${rotulo}</option>`).join("");
+
+      ["df-categoria", "cp-categoria", "av-categoria"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el && !el.dataset.pronto) {
+          el.innerHTML = opcoes;
+          el.dataset.pronto = "1";
+        }
+      });
+    }
+
+    function mudarMesDespesa(delta) {
+      const [ano, m] = mesDespesa.split("-").map(Number);
+      mesDespesa = new Date(Date.UTC(ano, m - 1 + delta, 1)).toISOString().slice(0, 7);
+      carregarDespesas();
+    }
+
+    function irMesAtualDespesa() {
+      mesDespesa = hoje().slice(0, 7);
+      carregarDespesas();
+    }
+
+    async function carregarDespesas() {
+      preencherCategorias();
+
+      const container = document.getElementById("despesa-resumo");
+      container.innerHTML = '<p class="loading">Carregando...</p>';
+
+      try {
+        const [rMes, rPrev, rFixas, rCartoes, rCompras] = await Promise.all([
+          fetch(`${API_URL}/api/despesas/mes?mes=${mesDespesa}`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/despesas/previsao?meses=6&inicio=${mesDespesa}`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/despesas/fixas`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/despesas/cartoes`, { headers: authHeaders() }),
+          fetch(`${API_URL}/api/despesas/compras`, { headers: authHeaders() })
+        ]);
+
+        if (rMes.status === 403) {
+          container.innerHTML = '<p class="loading">Acesso restrito.</p>';
+          return;
+        }
+
+        const mes = await rMes.json();
+        const prev = await rPrev.json();
+        const fixas = await rFixas.json();
+        const cartoes = await rCartoes.json();
+        const compras = await rCompras.json();
+
+        cartoesCache = cartoes;
+
+        const [ano, m] = mesDespesa.split("-");
+        document.getElementById("despesa-titulo").textContent =
+          `${NOMES_MES_CURTO[Number(m) - 1]} de ${ano}`;
+
+        renderizarResumoDespesas(mes);
+        desenharGraficoDespesas(prev);
+        renderizarFixas(fixas);
+        renderizarCartoes(cartoes);
+        renderizarCompras(compras, cartoes);
+        renderizarAvulsas(mes.avulsas);
+        renderizarCategorias(mes.porCategoria, mes.totais.total);
+        preencherSelectCartoes(cartoes);
+
+        const campoData = document.getElementById("cp-data");
+        if (!campoData.value) campoData.value = hoje();
+
+        const campoAvulsa = document.getElementById("av-data");
+        if (!campoAvulsa.value) campoAvulsa.value = hoje();
+      } catch {
+        container.innerHTML = '<p class="loading">Erro ao carregar.</p>';
+      }
+    }
+
+    function renderizarResumoDespesas(mes) {
+      document.getElementById("despesa-resumo").innerHTML = `
+        <div class="card-rel">
+          <div class="valor" style="color:#C0392B;">${brl(mes.totais.total)}</div>
+          <div class="rotulo">Total do mês</div>
+        </div>
+        <div class="card-rel">
+          <div class="valor">${brl(mes.totais.fixas)}</div>
+          <div class="rotulo">Fixas</div>
+          <div class="extra">${mes.fixas.length} conta(s)</div>
+        </div>
+        <div class="card-rel">
+          <div class="valor">${brl(mes.totais.cartao)}</div>
+          <div class="rotulo">Cartão</div>
+          <div class="extra">${mes.cartao.length} parcela(s)</div>
+        </div>
+        <div class="card-rel">
+          <div class="valor">${brl(mes.totais.avulsas)}</div>
+          <div class="rotulo">Avulsas</div>
+          <div class="extra">${mes.avulsas.length} lançamento(s)</div>
+        </div>
+      `;
+    }
+
+    function desenharGraficoDespesas(previsao) {
+      destruirGrafico("despesas");
+      if (typeof Chart === "undefined" || !Array.isArray(previsao)) return;
+
+      const ctx = document.getElementById("grafico-despesas");
+      if (!ctx) return;
+
+      graficos.despesas = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: previsao.map((p) => NOMES_MES_CURTO[Number(p.mes.slice(5, 7)) - 1].slice(0, 3)),
+          datasets: [
+            {
+              label: "Fixas",
+              data: previsao.map((p) => p.fixas),
+              backgroundColor: "#8B5A3C",
+              borderRadius: 4
+            },
+            {
+              label: "Cartão",
+              data: previsao.map((p) => p.cartao),
+              backgroundColor: "#C97B63",
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { boxWidth: 12, font: { size: 10 } } } },
+          scales: {
+            y: { stacked: true, beginAtZero: true, ticks: { font: { size: 10 } } },
+            x: { stacked: true, ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    function renderizarFixas(lista) {
+      const container = document.getElementById("lista-fixas");
+
+      if (!lista.length) {
+        container.innerHTML = '<p class="loading">Nenhuma despesa fixa.</p>';
+        return;
+      }
+
+      container.innerHTML = lista
+        .map((f) => {
+          const rotulo = CATEGORIAS_DESPESA.find((c) => c[0] === f.categoria)?.[1] || f.categoria;
+          return `
+          <div class="usuario-linha">
+            <div class="dados">
+              ${f.nome}
+              <small>${rotulo} · vence dia ${f.diaVencimento} · desde ${f.inicioEm.split("-").reverse().join("/")}</small>
+            </div>
+            <strong style="font-size:13px;">${brl(f.valor)}</strong>
+            <button class="mini" onclick="removerDespesaFixa('${f._id}')">Excluir</button>
+          </div>`;
+        })
+        .join("");
+    }
+
+    function renderizarCartoes(lista) {
+      const container = document.getElementById("lista-cartoes");
+
+      if (!lista.length) {
+        container.innerHTML = '<p class="loading">Nenhum cartão cadastrado.</p>';
+        return;
+      }
+
+      container.innerHTML = lista
+        .map(
+          (c) => `
+        <div class="usuario-linha">
+          <span class="swatch" style="background:${c.cor}"></span>
+          <div class="dados">
+            ${c.nome}${c.ultimosDigitos ? ` ···· ${c.ultimosDigitos}` : ""}
+            <small>fecha dia ${c.diaFechamento} · vence dia ${c.diaVencimento}</small>
+          </div>
+          <button class="mini" onclick="removerCartao('${c._id}')">Desativar</button>
+        </div>`
+        )
+        .join("");
+    }
+
+    function preencherSelectCartoes(cartoes) {
+      const select = document.getElementById("cp-cartao");
+      const atual = select.value;
+
+      select.innerHTML = cartoes.length
+        ? cartoes.map((c) => `<option value="${c._id}">${c.nome}</option>`).join("")
+        : '<option value="">Cadastre um cartão</option>';
+
+      if (atual) select.value = atual;
+    }
+
+    function renderizarCompras(compras, cartoes) {
+      const container = document.getElementById("lista-compras");
+
+      if (!compras.length) {
+        container.innerHTML = '<p class="loading">Nenhuma compra lançada.</p>';
+        return;
+      }
+
+      const nomes = new Map(cartoes.map((c) => [String(c._id), c.nome]));
+      const cores = new Map(cartoes.map((c) => [String(c._id), c.cor]));
+
+      container.innerHTML = compras
+        .slice(0, 20)
+        .map((c) => {
+          const parcela = Math.round((c.valorTotal / c.parcelas) * 100) / 100;
+          return `
+          <div class="usuario-linha">
+            <span class="swatch" style="background:${cores.get(String(c.cartaoId)) || "#7C9EB2"}"></span>
+            <div class="dados">
+              ${c.descricao}
+              <small>
+                ${nomes.get(String(c.cartaoId)) || "Cartão"} ·
+                ${c.parcelas}x de ${brl(parcela)} · compra ${c.dataCompra.split("-").reverse().join("/")}
+              </small>
+            </div>
+            <strong style="font-size:13px;">${brl(c.valorTotal)}</strong>
+            <button class="mini" onclick="removerCompraCartao('${c._id}')">Excluir</button>
+          </div>`;
+        })
+        .join("");
+    }
+
+    function renderizarAvulsas(lista) {
+      const container = document.getElementById("lista-avulsas");
+
+      if (!lista.length) {
+        container.innerHTML = '<p class="loading">Nenhuma despesa avulsa neste mês.</p>';
+        return;
+      }
+
+      container.innerHTML = lista
+        .map((a) => {
+          const rotulo = CATEGORIAS_DESPESA.find((c) => c[0] === a.categoria)?.[1] || a.categoria;
+          return `
+          <div class="usuario-linha">
+            <div class="dados">
+              ${a.nome}
+              <small>${a.data.split("-").reverse().join("/")} · ${rotulo} · ${a.formaPagamento}</small>
+            </div>
+            <strong style="font-size:13px;">${brl(a.valor)}</strong>
+            <button class="mini" onclick="removerDespesaAvulsa('${a._id}')">Excluir</button>
+          </div>`;
+        })
+        .join("");
+    }
+
+    function renderizarCategorias(porCategoria, total) {
+      const container = document.getElementById("despesa-categorias");
+
+      if (!porCategoria || !porCategoria.length) {
+        container.innerHTML = '<p class="loading">Sem despesas neste mês.</p>';
+        return;
+      }
+
+      container.innerHTML = porCategoria
+        .map((c) => {
+          const rotulo = CATEGORIAS_DESPESA.find((x) => x[0] === c.categoria)?.[1] || c.categoria;
+          const percentual = total ? Math.round((c.valor / total) * 100) : 0;
+          return `
+          <div style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#6B5B4B;">
+              <span>${rotulo}</span>
+              <span><strong>${brl(c.valor)}</strong> · ${percentual}%</span>
+            </div>
+            <div style="height:6px;background:#F0E8DC;border-radius:4px;margin-top:4px;overflow:hidden;">
+              <div style="height:100%;width:${percentual}%;background:#8B5A3C;border-radius:4px;"></div>
+            </div>
+          </div>`;
+        })
+        .join("");
+    }
+
+    // ---- criação / exclusão ----
+
+    async function criarDespesaFixa() {
+      const nome = document.getElementById("df-nome").value.trim();
+      const valor = Number(document.getElementById("df-valor").value);
+      const categoria = document.getElementById("df-categoria").value;
+      const diaVencimento = Number(document.getElementById("df-dia").value) || 5;
+      const formaPagamento = document.getElementById("df-forma").value;
+
+      if (!nome || !(valor > 0)) { alert("Informe nome e valor"); return; }
+
+      const resp = await fetch(`${API_URL}/api/despesas/fixas`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ nome, valor, categoria, diaVencimento, formaPagamento, inicioEm: mesDespesa })
+      });
+
+      if (!resp.ok) { alert("Erro ao cadastrar."); return; }
+
+      document.getElementById("df-nome").value = "";
+      document.getElementById("df-valor").value = "";
+      carregarDespesas();
+    }
+
+    async function removerDespesaFixa(id) {
+      if (!confirm("Excluir esta despesa fixa?")) return;
+      const resp = await fetch(`${API_URL}/api/despesas/fixas/${id}`, {
+        method: "DELETE",
+        headers: authHeaders()
+      });
+      if (resp.ok) carregarDespesas();
+      else alert("Erro ao excluir.");
+    }
+
+    async function criarCartao() {
+      const nome = document.getElementById("cc-nome").value.trim();
+      const ultimosDigitos = document.getElementById("cc-digitos").value.trim();
+      const diaFechamento = Number(document.getElementById("cc-fechamento").value) || 5;
+      const diaVencimento = Number(document.getElementById("cc-vencimento").value) || 12;
+      const limite = Number(document.getElementById("cc-limite").value) || 0;
+
+      if (!nome) { alert("Informe a operadora do cartão"); return; }
+
+      const cores = ["#7C9EB2", "#C97B63", "#8FA98F", "#9B8AA6", "#D4A373"];
+      const cor = cores[cartoesCache.length % cores.length];
+
+      const resp = await fetch(`${API_URL}/api/despesas/cartoes`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ nome, ultimosDigitos, diaFechamento, diaVencimento, limite, cor })
+      });
+
+      if (!resp.ok) { alert("Erro ao cadastrar cartão."); return; }
+
+      document.getElementById("cc-nome").value = "";
+      document.getElementById("cc-digitos").value = "";
+      document.getElementById("cc-limite").value = "";
+      carregarDespesas();
+    }
+
+    async function removerCartao(id) {
+      if (!confirm("Desativar este cartão?")) return;
+      const resp = await fetch(`${API_URL}/api/despesas/cartoes/${id}`, {
+        method: "DELETE",
+        headers: authHeaders()
+      });
+      if (resp.ok) carregarDespesas();
+      else alert("Erro ao desativar.");
+    }
+
+    async function criarCompraCartao() {
+      const cartaoId = document.getElementById("cp-cartao").value;
+      const descricao = document.getElementById("cp-descricao").value.trim();
+      const valorTotal = Number(document.getElementById("cp-valor").value);
+      const parcelas = Number(document.getElementById("cp-parcelas").value) || 1;
+      const dataCompra = document.getElementById("cp-data").value;
+      const categoria = document.getElementById("cp-categoria").value;
+
+      if (!cartaoId) { alert("Cadastre um cartão primeiro"); return; }
+      if (!descricao || !(valorTotal > 0)) { alert("Informe descrição e valor"); return; }
+
+      const resp = await fetch(`${API_URL}/api/despesas/compras`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ cartaoId, descricao, valorTotal, parcelas, dataCompra, categoria })
+      });
+
+      const dados = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) { alert(dados.erro || "Erro ao lançar compra"); return; }
+
+      alert(`${parcelas > 1 ? `${parcelas}x de ${brl(dados.valorParcela)}` : brl(valorTotal)} — começa em ${dados.primeiroMes.split("-").reverse().join("/")}`);
+
+      document.getElementById("cp-descricao").value = "";
+      document.getElementById("cp-valor").value = "";
+      document.getElementById("cp-parcelas").value = "1";
+      carregarDespesas();
+    }
+
+    async function removerCompraCartao(id) {
+      if (!confirm("Excluir esta compra?")) return;
+      const resp = await fetch(`${API_URL}/api/despesas/compras/${id}`, {
+        method: "DELETE",
+        headers: authHeaders()
+      });
+      if (resp.ok) carregarDespesas();
+      else alert("Erro ao excluir.");
+    }
+
+    async function criarDespesaAvulsa() {
+      const nome = document.getElementById("av-nome").value.trim();
+      const valor = Number(document.getElementById("av-valor").value);
+      const data = document.getElementById("av-data").value || hoje();
+      const formaPagamento = document.getElementById("av-forma").value;
+      const categoria = document.getElementById("av-categoria").value;
+
+      if (!nome || !(valor > 0)) { alert("Informe descrição e valor"); return; }
+
+      const resp = await fetch(`${API_URL}/api/despesas/avulsas`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ nome, valor, data, formaPagamento, categoria })
+      });
+
+      if (!resp.ok) { alert("Erro ao lançar despesa."); return; }
+
+      document.getElementById("av-nome").value = "";
+      document.getElementById("av-valor").value = "";
+      carregarDespesas();
+    }
+
+    async function removerDespesaAvulsa(id) {
+      if (!confirm("Excluir esta despesa?")) return;
+      const resp = await fetch(`${API_URL}/api/despesas/avulsas/${id}`, {
+        method: "DELETE",
+        headers: authHeaders()
+      });
+      if (resp.ok) carregarDespesas();
       else alert("Erro ao excluir.");
     }
 
