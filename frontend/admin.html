@@ -1065,7 +1065,11 @@
 
         let etiqueta = "";
         if (!d.fechado && !d.bloqueado) {
-          if (d.disponiveis === 0) {
+          if (d.passado) {
+            if (d.ocupados > 0) {
+              etiqueta = `<span class="qtd" style="background:#EFE7DC;color:#6B5B4B;">${d.ocupados} atend.</span>`;
+            }
+          } else if (d.disponiveis === 0) {
             classes.push("cheio");
             etiqueta = '<span class="qtd">cheio</span>';
           } else {
