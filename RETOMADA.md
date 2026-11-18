@@ -59,17 +59,49 @@ quando a Marina responde pelo app, textos centralizados. **Funciona em modo simu
 **Infra**: backup diário criptografado no GitHub Actions (90 dias, com `restore.mjs` testado),
 monitor da API a cada 15 min, segredos rotacionados, API fechada por token, rate limit.
 
+## Tentativa de ativar o bot — 18/11/2026 (leia antes de repetir)
+
+O app **Marina Agili** existe na Meta (tipo Empresa, modo desenvolvimento). Configuramos
+token, Phone number ID, webhook verificado e assinatura do campo `messages`. **Tudo do nosso
+lado funciona** — o que travou foi a Meta:
+
+| Bloqueio | Detalhe |
+|---|---|
+| **Erro 130497** | "Business account is restricted from messaging users in this country" — a **conta de teste** não pode enviar para o **Brasil**. Cadastrar cartão de crédito **não resolveu** |
+| **Modo desenvolvimento** | mensagens reais (de celular para o número de teste) não são entregues ao nosso webhook; só eventos enviados pelo painel chegam |
+| **Site para verificação** | a Meta recusa domínio de hospedagem gratuita (`vercel.app`) — exige domínio próprio |
+
+**O que já está provado (não precisa repetir os testes):** webhook recebe e processa, token lê
+número e conta (APPROVED), envio é aceito pela API, verificação do webhook responde 200/403
+corretamente. O código não é o problema.
+
+**Dados guardados:** Phone Number ID `1586206087900440`, WABA `2112211906125685`, app
+`29384874281121876`, número de teste `+1 555 155-3276`. Tokens são temporários (24h) e expiram.
+
+**Conclusão:** conta de teste da Meta **não serve para o Brasil**. O bot só sobe com número
+brasileiro real. Não há chip novo disponível → o caminho é o número da Marina (coexistência via
+Gupshup), que exige autorização dela.
+
 ## Pendências (na ordem que faz sentido)
 
 | # | O que falta | Depende de |
 |---|---|---|
-| 1 | **Ativar o bot de verdade** (conta Meta + número de teste grátis) | André/Marina criarem conta em developers.facebook.com |
-| 2 | **Lembrete D-1** (template de utilidade na Meta) | bot ativo + template aprovado |
-| 3 | **Sinal de 20% com Pix/cartão** (Mercado Pago) | Marina confirmar conta MP |
-| 4 | **Onboarding Gupshup (coexistence)** no número dela | autorização explícita + janela tranquila + backup do app |
-| 5 | Domínio próprio (`marinagili.com.br` está livre) | comprar no Registro.br |
+| 1 | **Comprar `marinagili.com.br`** (~R$ 40/ano, CNPJ do MEI) e apontar na Vercel | André (sem a Marina) |
+| 2 | **Verificação da empresa na Meta** (CNPJ do MEI, cartão CNPJ) | Marina autorizar + código no telefone |
+| 3 | **Bot com número brasileiro real** (Gupshup coexistence) | autorização da Marina + janela tranquila + backup do app |
+| 4 | Lembrete D-1 (template de utilidade na Meta) | bot ativo |
+| 5 | Sinal de 20% com Pix/cartão (Mercado Pago) | conta MP da Marina |
 | 6 | Render pago (US$ 7/mês) — hoje dorme e atrasa 1 min | decisão de custo |
-| 7 | Política de privacidade citar data de nascimento | edição rápida |
+| 7 | Política de privacidade citar data de nascimento | edição rápida (André) |
+
+### O que dá para fazer SEM a Marina
+
+- Comprar o domínio e configurar DNS/Vercel
+- Lembretes D-1 e textos (rascunho)
+- Política de privacidade: incluir data de nascimento
+- Bot em modo simulado (`BOT_DRY_RUN=1`) para validar o fluxo inteiro
+- Ajustes visuais e de usabilidade no painel
+
 
 ## Dados de demonstração (ATENÇÃO)
 
