@@ -19,6 +19,7 @@ const VendaSchema = new mongoose.Schema({
   data: { type: String, required: true }, // "2026-11-17"
 
   observacoes: { type: String, default: "" },
+  formaPagamento: { type: String, default: "" }, // dinheiro | pix | debito | credito
   criadoPor: { type: String, default: "" },
   criadoEm: { type: Date, default: Date.now }
 });

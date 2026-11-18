@@ -305,6 +305,53 @@ router.get("/resultado", async (req, res) => {
   }
 });
 
+// ---------- recebimentos por forma de pagamento ----------
+router.get("/pagamentos", async (req, res) => {
+  try {
+    const { de, ate } = periodo(req.query);
+
+    const [agendamentos, vendas] = await Promise.all([
+      Agendamento.find({ data: { $gte: de, $lte: ate } }).lean(),
+      Venda.find({ data: { $gte: de, $lte: ate } }).lean()
+    ]);
+
+    // Conta tudo que foi recebido, mesmo que o status ainda não tenha sido atualizado.
+    const pagos = agendamentos.filter((a) => (a.pagamentos || []).length > 0);
+    const semPagamento = agendamentos.filter(
+      (a) => a.status === "concluido" && !(a.pagamentos || []).length
+    ).length;
+
+    const porForma = new Map();
+    const somar = (forma, valor) => {
+      const chave = forma || "nao_informado";
+      const atual = porForma.get(chave) || { forma: chave, valor: 0, lancamentos: 0 };
+      atual.valor = arredondar(atual.valor + Number(valor || 0));
+      atual.lancamentos += 1;
+      porForma.set(chave, atual);
+    };
+
+    for (const a of pagos) {
+      for (const p of a.pagamentos || []) somar(p.forma, p.valor);
+    }
+
+    for (const v of vendas) somar(v.formaPagamento || "nao_informado", v.total);
+
+    const formas = [...porForma.values()].sort((a, b) => b.valor - a.valor);
+
+    res.json({
+      de,
+      ate,
+      formas,
+      total: arredondar(formas.reduce((s, f) => s + f.valor, 0)),
+      atendimentos: pagos.length,
+      semPagamento,
+      vendas: vendas.length
+    });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
 // ---------- exportação CSV ----------
 router.get("/csv", async (req, res) => {
   try {

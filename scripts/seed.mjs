@@ -130,6 +130,9 @@ try {
       if (r.deletedCount) console.log(`   ${r.deletedCount} registro(s) de despesa em ${nome}`);
     }
 
+    const cr = await db.collection("movimentocreditos").deleteMany({ _demo: true });
+    if (cr.deletedCount) console.log(`   ${cr.deletedCount} crédito(s) de demonstração`);
+
     process.exit(0);
   }
 
@@ -252,12 +255,26 @@ try {
 
       let status = "confirmado";
       let extra = {};
+      let pagamentos = [];
 
       if (offset < 0) {
         const sorte = rnd();
         if (sorte < 0.84) {
           status = "concluido";
           extra = { compareceuEm: new Date(`${data}T${hora}:00-03:00`) };
+
+          const forma = rnd();
+          if (forma < 0.35) pagamentos = [{ forma: "dinheiro", valor: servico.preco }];
+          else if (forma < 0.65) pagamentos = [{ forma: "pix", valor: servico.preco }];
+          else if (forma < 0.85) pagamentos = [{ forma: "debito", valor: servico.preco }];
+          else if (forma < 0.95) pagamentos = [{ forma: "credito", valor: servico.preco }];
+          else {
+            const metade = Math.round((servico.preco / 2) * 100) / 100;
+            pagamentos = [
+              { forma: "dinheiro", valor: metade },
+              { forma: "credito", valor: Math.round((servico.preco - metade) * 100) / 100 }
+            ];
+          }
         } else if (sorte < 0.93) {
           status = "nao_compareceu";
         } else {
@@ -282,6 +299,8 @@ try {
         canceladoEm: extra.canceladoEm || null,
         compareceuEm: extra.compareceuEm || null,
         remarcadoEm: null,
+        pagamentos,
+        pagoEm: status === "concluido" ? new Date(`${data}T${hora}:00-03:00`) : null,
         criadoEm: new Date(`${somarDias(data, -3)}T10:00:00-03:00`)
       };
 
@@ -407,6 +426,7 @@ try {
       total: Math.round(produto.preco * quantidade * 100) / 100,
       data,
       observacoes: "",
+      formaPagamento: escolher(["dinheiro", "pix", "debito", "credito"]),
       criadoPor: "Demonstração",
       criadoEm: new Date(`${data}T15:00:00-03:00`)
     });
@@ -573,6 +593,35 @@ try {
     avulsasCriadas++;
   }
 
+  // ==================== CRÉDITOS ====================
+  const creditosDemo = [
+    [clientes[2], 15, "Troco do atendimento"],
+    [clientes[7], 30, "Crédito manual"],
+    [clientes[11], 20, "Troco do atendimento"]
+  ];
+
+  let creditosCriados = 0;
+  for (const [cliente, valor, motivo] of creditosDemo) {
+    if (!cliente) continue;
+
+    const existe = await db
+      .collection("movimentocreditos")
+      .findOne({ clienteWhatsapp: cliente.whatsapp, _demo: true });
+    if (existe) continue;
+
+    await db.collection("movimentocreditos").insertOne({
+      clienteWhatsapp: cliente.whatsapp,
+      valor,
+      tipo: "credito",
+      motivo,
+      data: somarDias(hoje, -entre(1, 20)),
+      agendamentoId: null,
+      criadoEm: new Date(),
+      _demo: true
+    });
+    creditosCriados++;
+  }
+
   // ==================== RESUMO ====================
   const totalAg = agendamentos.length;
   const porStatus = {
@@ -591,6 +640,7 @@ try {
   console.log("   1 usuário de equipe: seed.funcionaria / demo1234");
   console.log("   2 dias bloqueados");
   console.log(`   ${fixasCriadas} despesas fixas | ${cartoesCriados.length} cartões | ${comprasCriadas} compras parceladas | ${avulsasCriadas} avulsas`);
+  console.log(`   ${creditosCriados} clientes com crédito`);
   console.log("\nPara apagar: node scripts/seed.mjs --limpar");
 } catch (err) {
   console.error("❌ Erro:", err.message);

@@ -1205,6 +1205,11 @@
           <div class="resumo-item"><div class="num" id="resumo-faturamento">R$ 0</div><div class="lbl">Faturamento mês</div></div>
           <div class="resumo-item"><div class="num" id="resumo-clientes">0</div><div class="lbl">Clientes únicos</div></div>
         </div>
+
+        <div class="card">
+          <h2>Recebido por forma de pagamento</h2>
+          <div id="resumo-pagamentos"></div>
+        </div>
       </div>
 
         </main>
@@ -1607,7 +1612,7 @@
       botoes.push(`<button class="mini" onclick='abrirRemarcar(${JSON.stringify(ag)})'>↔</button>`);
 
       if (ag.status === "confirmado" && passou) {
-        botoes.push(`<button class="mini" onclick="marcarCompareceu('${ag._id}')">✅ veio</button>`);
+        botoes.push(`<button class="mini" onclick='abrirRecebimento(${JSON.stringify(ag)})'>✅ veio</button>`);
         botoes.push(`<button class="mini" onclick="marcarFalta('${ag._id}')">🚫 faltou</button>`);
       }
       return botoes.join(" ");
@@ -1706,7 +1711,7 @@
               ${
                 a.status === "confirmado"
                   ? jaPassou(a)
-                    ? `<button class="btn-acao btn-concluir" onclick="marcarCompareceu('${a._id}')">✅ Compareceu</button>
+                    ? `<button class="btn-acao btn-concluir" onclick='abrirRecebimento(${JSON.stringify(a)})'>✅ Compareceu</button>
                        <button class="btn-acao btn-falta" onclick="marcarFalta('${a._id}')">🚫 Não veio</button>`
                     : `<button class="btn-acao btn-concluir" onclick="mudarStatus('${a._id}', 'concluido')">✅ Concluir</button>
                        <button class="btn-acao btn-cancelar" onclick="mudarStatus('${a._id}', 'cancelado')">❌ Cancelar</button>`
@@ -1759,6 +1764,190 @@
       carregarCalendario();
       carregarAgenda();
       carregarResumo();
+    }
+
+    // ============ RECEBIMENTO ============
+    let creditoDisponivel = 0;
+    let usarCredito = false;
+    let trocoCredito = false;
+
+    async function abrirRecebimento(ag) {
+      const total = Number(ag.servicoPreco);
+
+      creditoDisponivel = 0;
+      usarCredito = false;
+      trocoCredito = false;
+
+      abrirModal(`
+        <h3>Receber atendimento</h3>
+        <p class="linha">${ag.clienteNome} · ${ag.servicoNome}</p>
+        <p class="linha"><strong>Total: ${brl(total)}</strong></p>
+
+        <div id="rec-credito" style="font-size:13px;color:#8B6F5C;margin:8px 0;"></div>
+
+        <label class="rotulo-campo">Forma de recebimento</label>
+        <select id="rec-forma" class="input-text" onchange="atualizarRecebimento(${total})">
+          <option value="dinheiro">Dinheiro</option>
+          <option value="pix">Pix</option>
+          <option value="debito">Débito</option>
+          <option value="credito">Crédito</option>
+          <option value="mesclado">Mesclado</option>
+        </select>
+
+        <div id="rec-campos"></div>
+
+        <button class="btn-primary" onclick="confirmarRecebimento('${ag._id}', ${total})">
+          Confirmar recebimento
+        </button>
+      `);
+
+      try {
+        const resp = await fetch(`${API_URL}/api/clientes/${ag.clienteWhatsapp}/credito`, {
+          headers: authHeaders()
+        });
+        const dados = await resp.json();
+        creditoDisponivel = Number(dados.saldo) || 0;
+
+        if (creditoDisponivel > 0) {
+          document.getElementById("rec-credito").innerHTML = `
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="rec-usar-credito" onchange="atualizarRecebimento(${total})">
+              Usar crédito de <strong>${brl(creditoDisponivel)}</strong>
+            </label>`;
+        }
+      } catch {}
+
+      atualizarRecebimento(total);
+    }
+
+    function atualizarRecebimento(total) {
+      const forma = document.getElementById("rec-forma").value;
+      const campo = document.getElementById("rec-campos");
+      const caixaCredito = document.getElementById("rec-usar-credito");
+
+      usarCredito = Boolean(caixaCredito && caixaCredito.checked);
+      const abatimento = usarCredito ? Math.min(creditoDisponivel, total) : 0;
+      const restante = Math.round((total - abatimento) * 100) / 100;
+
+      if (forma === "mesclado") {
+        campo.innerHTML = `
+          <label class="rotulo-campo">Dinheiro</label>
+          <input id="rec-dinheiro" type="number" step="0.01" class="input-text" placeholder="0,00"
+                 oninput="calcularTrocoMesclado(${restante})">
+          <label class="rotulo-campo">Cartão / Pix</label>
+          <input id="rec-cartao" type="number" step="0.01" class="input-text" placeholder="0,00"
+                 oninput="calcularTrocoMesclado(${restante})">
+          <div id="rec-troco" style="font-size:13px;color:#8B6F5C;margin-bottom:10px;"></div>
+        `;
+        return;
+      }
+
+      campo.innerHTML = `
+        <label class="rotulo-campo">Valor recebido</label>
+        <input id="rec-valor" type="number" step="0.01" class="input-text" value="${restante.toFixed(2)}"
+               oninput="atualizarTroco(${restante})">
+        <div id="rec-troco" style="font-size:13px;color:#8B6F5C;margin-bottom:10px;"></div>
+      `;
+
+      atualizarTroco(restante);
+    }
+
+    function atualizarTroco(restante) {
+      const campoValor = document.getElementById("rec-valor");
+      const alvo = document.getElementById("rec-troco");
+      if (!campoValor || !alvo) return;
+
+      const recebido = Number(campoValor.value) || 0;
+      const sobra = Math.round((recebido - restante) * 100) / 100;
+
+      if (sobra > 0.009) {
+        trocoCredito = true;
+        alvo.innerHTML = `
+          <div style="color:#3F6B38;margin-bottom:6px;">Troco: <strong>${brl(sobra)}</strong></div>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="rec-troco-credito" checked
+                   onchange="trocoCredito = this.checked">
+            Deixar o troco como crédito para o próximo serviço
+          </label>`;
+      } else {
+        trocoCredito = false;
+        alvo.innerHTML = sobra < -0.009 ? `<span style="color:#A33B45;">Faltam ${brl(-sobra)}</span>` : "";
+      }
+    }
+
+    function calcularTrocoMesclado(restante) {
+      const dinheiro = Number(document.getElementById("rec-dinheiro").value) || 0;
+      const cartao = Number(document.getElementById("rec-cartao").value) || 0;
+      const alvo = document.getElementById("rec-troco");
+      const pago = Math.round((dinheiro + cartao) * 100) / 100;
+      const sobra = Math.round((pago - restante) * 100) / 100;
+
+      if (sobra > 0.009) {
+        trocoCredito = true;
+        alvo.innerHTML = `<div style="color:#3F6B38;">Troco: <strong>${brl(sobra)}</strong> (vai para crédito)</div>`;
+      } else {
+        trocoCredito = false;
+        alvo.innerHTML = sobra < -0.009 ? `<span style="color:#A33B45;">Faltam ${brl(-sobra)}</span>` : "";
+      }
+    }
+
+    async function confirmarRecebimento(id, total) {
+      const forma = document.getElementById("rec-forma").value;
+      const pagamentos = [];
+
+      if (forma === "mesclado") {
+        const dinheiro = Number(document.getElementById("rec-dinheiro").value) || 0;
+        const cartao = Number(document.getElementById("rec-cartao").value) || 0;
+        if (dinheiro > 0) pagamentos.push({ forma: "dinheiro", valor: dinheiro });
+        if (cartao > 0) pagamentos.push({ forma: "credito", valor: cartao });
+      } else {
+        const valor = Number(document.getElementById("rec-valor").value) || 0;
+        if (valor > 0) pagamentos.push({ forma, valor });
+      }
+
+      if (!pagamentos.length && !usarCredito) {
+        alert("Informe o valor recebido");
+        return;
+      }
+
+      const resp = await fetch(`${API_URL}/api/agendamentos/${id}/pagamento`, {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          pagamentos,
+          usarCredito: usarCredito ? creditoDisponivel : 0,
+          trocoCredito
+        })
+      });
+
+      const dados = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        alert(dados.erro || "Erro ao registrar o recebimento");
+        return;
+      }
+
+      const presenca = await fetch(`${API_URL}/api/agendamentos/${id}/compareceu`, {
+        method: "PATCH",
+        headers: authHeaders()
+      });
+
+      if (!presenca.ok) {
+        alert("Recebimento salvo, mas não consegui marcar a presença.");
+        return;
+      }
+
+      fecharModal();
+
+      if (dados.saldoCredito > 0) {
+        alert(`Recebido ✅\nCrédito da cliente agora: ${brl(dados.saldoCredito)}`);
+      }
+
+      await carregarClientesComSinal();
+      carregarCalendario();
+      carregarAgenda();
+      carregarResumo();
+      carregarClientes();
     }
 
     async function marcarCompareceu(id) {
@@ -2009,6 +2198,16 @@ Até lá! ✨`;
     }
 
     // ============ RESUMO ============
+    const NOMES_FORMA = {
+      dinheiro: "Dinheiro",
+      pix: "Pix",
+      debito: "Débito",
+      credito: "Cartão de crédito",
+      credito_cliente: "Crédito da cliente",
+      outro: "Outro",
+      nao_informado: "Não informado"
+    };
+
     async function carregarResumo() {
       try {
         const resp = await fetch(`${API_URL}/api/agendamentos`, { headers: authHeaders() });
@@ -2027,6 +2226,52 @@ Até lá! ✨`;
         document.getElementById("resumo-mes").textContent = mesAgs.length;
         document.getElementById("resumo-faturamento").textContent = `R$ ${faturamento}`;
         document.getElementById("resumo-clientes").textContent = clientesUnicos;
+
+        const de = mesAtual + "-01";
+        const pagamentos = await (
+          await fetch(`${API_URL}/api/relatorios/pagamentos?de=${de}&ate=${h}`, { headers: authHeaders() })
+        ).json();
+
+        const container = document.getElementById("resumo-pagamentos");
+
+        if (!pagamentos.formas || !pagamentos.formas.length) {
+          container.innerHTML = '<p class="loading">Nenhum recebimento registrado neste mês.</p>';
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="cards-relatorio" style="margin-bottom:10px;">
+            <div class="card-rel">
+              <div class="valor">${brl(pagamentos.total)}</div>
+              <div class="rotulo">Total recebido</div>
+            </div>
+            <div class="card-rel">
+              <div class="valor">${pagamentos.atendimentos}</div>
+              <div class="rotulo">Atendimentos concluídos</div>
+              <div class="extra">${pagamentos.semPagamento} sem forma registrada</div>
+            </div>
+            <div class="card-rel">
+              <div class="valor">${pagamentos.vendas}</div>
+              <div class="rotulo">Vendas de produto</div>
+            </div>
+          </div>
+
+          ${pagamentos.formas
+            .map((f) => {
+              const percentual = pagamentos.total ? Math.round((f.valor / pagamentos.total) * 100) : 0;
+              return `
+              <div style="margin-bottom:10px;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#4A3B30;">
+                  <span>${NOMES_FORMA[f.forma] || f.forma}</span>
+                  <span><strong>${brl(f.valor)}</strong> · ${percentual}%</span>
+                </div>
+                <div style="height:6px;background:#F0E8DC;border-radius:4px;margin-top:4px;overflow:hidden;">
+                  <div style="height:100%;width:${percentual}%;background:#8B5A3C;border-radius:4px;"></div>
+                </div>
+              </div>`;
+            })
+            .join("")}
+        `;
       } catch {}
     }
 
@@ -3446,6 +3691,11 @@ Até lá! ✨`;
               : ""
           }
 
+          <div class="linha" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <span><strong>Crédito:</strong> ${brl(dados.credito || 0)}</span>
+            <button class="mini" onclick="adicionarCredito('${whatsapp}')">+ crédito</button>
+          </div>
+
           <div style="display:flex;gap:8px;margin:16px 0 10px;">
             <select id="hist-ano" class="input-text" style="margin:0;" onchange="mudarFiltroHistorico()">${opcoesAno}</select>
             <select id="hist-mes" class="input-text" style="margin:0;" onchange="mudarFiltroHistorico()">${opcoesMes}</select>
@@ -3479,6 +3729,26 @@ Até lá! ✨`;
     // Mantém os atalhos antigos (agenda, lista de agendamentos) apontando para a ficha nova.
     function abrirFichaCliente(whatsapp) {
       return abrirCliente(whatsapp);
+    }
+
+    async function adicionarCredito(whatsapp) {
+      const valor = Number(prompt("Valor do crédito (R$):", ""));
+      if (!valor || valor <= 0) return;
+
+      const motivo = prompt("Motivo (opcional):", "Crédito manual") || "Crédito manual";
+
+      const resp = await fetch(`${API_URL}/api/clientes/${whatsapp}/credito`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ valor, motivo })
+      });
+
+      const dados = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) { alert(dados.erro || "Erro ao lançar crédito"); return; }
+
+      alert(`Crédito lançado. Novo saldo: ${brl(dados.saldo)}`);
+      await renderHistoricoCliente();
     }
 
     async function liberarSinal(whatsapp) {

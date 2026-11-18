@@ -36,6 +36,19 @@ const AgendamentoSchema = new mongoose.Schema({
   compareceuEm: { type: Date, default: null },
   remarcadoEm: { type: Date, default: null },
 
+  // Como foi pago. Mais de um item = pagamento mesclado.
+  pagamentos: [
+    {
+      forma: {
+        type: String,
+        enum: ["dinheiro", "pix", "debito", "credito", "credito_cliente", "outro"],
+        required: true
+      },
+      valor: { type: Number, required: true, min: 0 }
+    }
+  ],
+  pagoEm: { type: Date, default: null },
+
   criadoEm: { type: Date, default: Date.now }
 });
 

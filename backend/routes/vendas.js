@@ -124,7 +124,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", exigirDono, async (req, res) => {
   try {
-    const { clienteWhatsapp, clienteNome, itens, data, observacoes } = req.body;
+    const { clienteWhatsapp, clienteNome, itens, data, observacoes, formaPagamento } = req.body;
 
     const numero = normalizarWhatsapp(clienteWhatsapp);
     if (numero.length < 10) {
@@ -173,6 +173,9 @@ router.post("/", exigirDono, async (req, res) => {
       total: Math.round(total * 100) / 100,
       data: dia,
       observacoes: observacoes ? String(observacoes).slice(0, 300) : "",
+      formaPagamento: ["dinheiro", "pix", "debito", "credito"].includes(formaPagamento)
+        ? formaPagamento
+        : "",
       criadoPor: req.usuario?.nome || ""
     });
 

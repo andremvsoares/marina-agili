@@ -6,6 +6,7 @@ import Agendamento from "../models/Agendamento.js";
 import Cliente from "../models/Cliente.js";
 import Venda from "../models/Venda.js";
 import { autenticar, exigirDono } from "./admin.js";
+import { saldoCredito, listarMovimentos, registrarCredito } from "../services/creditos.js";
 import {
   buscarFicha,
   listarClientesComSinal,
@@ -188,6 +189,39 @@ router.get("/sinal", autenticar, async (req, res) => {
   }
 });
 
+// ---------- crédito da cliente ----------
+router.get("/:whatsapp/credito", autenticar, async (req, res) => {
+  try {
+    const numero = normalizarWhatsapp(req.params.whatsapp);
+    res.json({
+      whatsapp: numero,
+      saldo: await saldoCredito(numero),
+      movimentos: await listarMovimentos(numero)
+    });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+router.post("/:whatsapp/credito", autenticar, exigirDono, async (req, res) => {
+  try {
+    const { valor, motivo, data } = req.body;
+
+    const resultado = await registrarCredito({
+      whatsapp: req.params.whatsapp,
+      valor,
+      motivo: motivo || "Crédito manual",
+      data
+    });
+
+    if (!resultado.ok) return res.status(resultado.status).json({ erro: resultado.erro });
+
+    res.status(201).json({ saldo: resultado.saldo, movimento: resultado.movimento });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
+  }
+});
+
 // ---------- ficha simples ----------
 router.get("/:whatsapp", autenticar, async (req, res) => {
   try {
@@ -238,6 +272,7 @@ router.get("/:whatsapp/historico", autenticar, async (req, res) => {
     res.json({
       cliente,
       periodo: { de, ate },
+      credito: await saldoCredito(numero),
       totais: {
         agendamentos: agendamentos.length,
         concluidos: concluidos.length,

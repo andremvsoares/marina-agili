@@ -24,6 +24,7 @@ import {
 } from "./services/clientes.js";
 import { criarAgendamento, horariosDisponiveis } from "./services/booking.js";
 import { validarAgendamento } from "./services/agenda.js";
+import { registrarCredito, saldoCredito } from "./services/creditos.js";
 
 dotenv.config();
 
@@ -330,6 +331,100 @@ app.patch("/api/agendamentos/:id/remarcar", autenticar, async (req, res) => {
     if (err && err.code === 11000) {
       return res.status(409).json({ erro: "Horário acabou de ser ocupado" });
     }
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// ---------- RECEBIMENTO ----------
+const FORMAS_PAGAMENTO = ["dinheiro", "pix", "debito", "credito", "outro"];
+const arredondar = (n) => Math.round(Number(n || 0) * 100) / 100;
+
+app.patch("/api/agendamentos/:id/pagamento", autenticar, async (req, res) => {
+  try {
+    const agendamento = await Agendamento.findById(req.params.id);
+    if (!agendamento) return res.status(404).json({ erro: "Agendamento não encontrado" });
+
+    const total = arredondar(agendamento.servicoPreco);
+
+    const lista = Array.isArray(req.body.pagamentos) ? req.body.pagamentos : [];
+    const pagamentos = [];
+
+    for (const item of lista) {
+      if (!FORMAS_PAGAMENTO.includes(item.forma)) {
+        return res.status(400).json({ erro: "Forma de pagamento inválida" });
+      }
+      const valor = arredondar(item.valor);
+      if (!(valor > 0)) continue;
+      pagamentos.push({ forma: item.forma, valor });
+    }
+
+    const usarCredito = arredondar(req.body.usarCredito);
+    const saldo = await saldoCredito(agendamento.clienteWhatsapp);
+
+    if (usarCredito > 0) {
+      if (usarCredito > saldo + 0.001) {
+        return res.status(400).json({ erro: `A cliente só tem R$ ${saldo.toFixed(2)} de crédito` });
+      }
+      if (usarCredito > total + 0.001) {
+        return res.status(400).json({ erro: "Crédito maior que o valor do atendimento" });
+      }
+      pagamentos.push({ forma: "credito_cliente", valor: usarCredito });
+    }
+
+    const pago = arredondar(pagamentos.reduce((s, p) => s + p.valor, 0));
+
+    if (pago + 0.01 < total) {
+      return res.status(400).json({ erro: `Faltam R$ ${(total - pago).toFixed(2)} para fechar o valor` });
+    }
+
+    const troco = arredondar(pago - total);
+    const trocoComoCredito = req.body.trocoCredito === true;
+
+    if (troco > 0.01 && !trocoComoCredito) {
+      return res.status(400).json({
+        erro: `Valor acima do total em R$ ${troco.toFixed(2)}. Marque para deixar como crédito.`
+      });
+    }
+
+    await Agendamento.updateOne(
+      { _id: agendamento._id },
+      { pagamentos, pagoEm: new Date() }
+    );
+
+    let saldoFinal = saldo;
+
+    if (usarCredito > 0) {
+      const uso = await registrarCredito({
+        whatsapp: agendamento.clienteWhatsapp,
+        valor: usarCredito,
+        tipo: "uso",
+        motivo: "Pagamento de atendimento",
+        data: agendamento.data,
+        agendamentoId: agendamento._id
+      });
+      if (uso.ok) saldoFinal = uso.saldo;
+    }
+
+    if (troco > 0.01 && trocoComoCredito) {
+      const credito = await registrarCredito({
+        whatsapp: agendamento.clienteWhatsapp,
+        valor: troco,
+        tipo: "credito",
+        motivo: "Troco do atendimento",
+        data: agendamento.data,
+        agendamentoId: agendamento._id
+      });
+      if (credito.ok) saldoFinal = credito.saldo;
+    }
+
+    res.json({
+      ok: true,
+      pagamentos,
+      troco,
+      trocoComoCredito: troco > 0.01 && trocoComoCredito,
+      saldoCredito: saldoFinal
+    });
+  } catch (err) {
     res.status(500).json({ erro: err.message });
   }
 });
